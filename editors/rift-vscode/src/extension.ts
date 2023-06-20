@@ -33,8 +33,11 @@ export function activate(context: vscode.ExtensionContext) {
             placeHolder: 'Write the function body',
             prompt: 'Enter a description of what you want the helper to do...',
         });
+        if (task === undefined) {
+            console.log('run_helper task was cancelled')
+            return
+        }
         const r = await hslc.run_helper({ position, textDocument, task })
-        vscode.window.showInformationMessage(`from lsp: ${r}`);
     });
 
     context.subscriptions.push(disposable);
@@ -91,7 +94,7 @@ export class ChatView implements vscode.WebviewViewProvider {
         // const backgroundColor = new vscode.ThemeColor('editor.background'); can make this look nice for any given vscode theme but takes some extra work I'm not doing now
 
         view.webview.onDidReceiveMessage(data => {
-            if(data.command === "copyText") {
+            if (data.command === "copyText") {
                 console.log('recieved copy in webview')
                 vscode.env.clipboard.writeText(data.content)
                 vscode.window.showInformationMessage('Text copied to clipboard!')

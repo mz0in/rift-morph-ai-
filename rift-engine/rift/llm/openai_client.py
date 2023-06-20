@@ -337,10 +337,10 @@ Answer the user's question."""
             try:
                 try:
                     prelude = await stream.readuntil("```")
-                    logger.info(f"prelude: {prelude}")
+                    logger.debug(f"prelude: {prelude}")
                     lang_tag = await stream.readuntil("\n")
                     if lang_tag:
-                        logger.info(f"lang_tag: {lang_tag}")
+                        logger.debug(f"lang_tag: {lang_tag}")
                 except EOFError:
                     logger.error("never found a code block")
                     return

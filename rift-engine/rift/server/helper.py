@@ -1,27 +1,13 @@
 import asyncio
 from dataclasses import dataclass, field
 from enum import Enum
-import inspect
 import logging
-from pathlib import Path
-import sys
-from types import ModuleType
 from typing import Any, ClassVar, Literal, Optional, List
-from miniscutil.lsp import LspServer as BaseLspServer, rpc_method
 from miniscutil.lsp.document import setdoc
-from miniscutil.rpc import AsyncStreamTransport, create_pipe_streams
 import miniscutil.lsp.types as lsp
-import importlib
 import importlib.util
-import urllib.parse
-from rift.llm import OpenAIClient, Message
 from rift.llm.abstract import AbstractCodeCompletionProvider, InsertCodeResult
 from rift.server.selection import RangeSet
-from rift.util.TextStream import TextStream
-import rift.util.asyncgen as asg
-from rift.llm.abstract import ChatMessage
-
-from miniscutil.lsp import LspServer as BaseLspServer
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +41,7 @@ class Helper:
     change_futures: dict[str, asyncio.Future[None]]
     cursor: lsp.Position
     ranges: RangeSet
+    model: AbstractCodeCompletionProvider
     """ All of the ranges that we have inserted. """
     task: Optional[asyncio.Task]
     """ Worker task. (running self.worker()) """
@@ -67,12 +54,12 @@ class Helper:
         return self.cfg.textDocument.uri
 
     def __init__(
-        self, cfg: RunHelperParams, client: AbstractCodeCompletionProvider, server: Any
+        self, cfg: RunHelperParams, model: AbstractCodeCompletionProvider, server: Any
     ):
         Helper.count += 1
         self.id = Helper.count
         self.cfg = cfg
-        self.client = client
+        self.model = model
         self.server = server
         self.ranges = RangeSet()
         self.status = Status.running
@@ -81,7 +68,7 @@ class Helper:
         document = server.documents.get(self.cfg.textDocument.uri, None)
         if document is None:
             available_docs = "\n".join(server.documents.keys())
-            # [note] this can happen when the client is still initializing and the client
+            # [note] this can happen when the model is still initializing and the model
             # queues up a request before the textDocument/didOpen notification is sent.
             raise LookupError(
                 f"document {self.cfg.textDocument.uri} not found in\n{available_docs}"
@@ -91,12 +78,12 @@ class Helper:
         self.subtasks = set()
 
     def cancel(self, msg="cancelled"):
-        logger.info(f"cancel run: {msg}")
+        logger.info(f"{self} cancel run: {msg}")
         if self.task is not None:
             self.task.cancel(msg)
 
     async def accept(self):
-        logger.info("user accepted result")
+        logger.info(f"{self} user accepted result")
         if self.status not in [Status.error, Status.done]:
             logger.error(f"cannot accept status {self.status}")
             return
@@ -105,7 +92,7 @@ class Helper:
 
     async def reject(self):
         # [todo] in this case we need to revert all of the changes that we made.
-        logger.info("user rejected result")
+        logger.info(f"{self} user rejected result")
         self.status = Status.rejected
         with setdoc(self.document):
             if self.ranges.is_empty:
@@ -131,17 +118,13 @@ class Helper:
     def running(self):
         return self.task is not None and not self.task.done()
 
-    def start(self, blocking=False) -> asyncio.Task:
-        if not blocking:
-            if self.running:
-                logger.error("already running")
-                assert self.task is not None
-                return self.task
-            self.task = asyncio.create_task(self._worker())
+    def start(self) -> asyncio.Task:
+        if self.running:
+            logger.error("already running")
+            assert self.task is not None
             return self.task
-        else:
-            waiter_task = asyncio.create_task(self._worker_sync())
-            return waiter_task
+        self.task = asyncio.create_task(self._worker())
+        return self.task
 
     async def send_progress(self, message: Optional[str] = None):
         await self.server.send_helper_progress(
@@ -152,35 +135,15 @@ class Helper:
             status=self.status.value,
         )
 
-    async def _worker_sync(self):
-        # self.server.register_change_callback(self.on_change, self.uri)
-
-        stop_criterion = lambda buff, delta: buff.count("\n") + delta.count("\n") > 3
-
-        client = self.server.client
-        pos = self.cursor
-        buff = ""
-        offset = self.document.position_to_offset(pos)
-        doc_text = self.document.text
-
-        stream: InsertCodeResult = await client.insert_code(
-            doc_text, offset, goal=self.cfg.task
-        )
-        logger.debug("starting streaming code for completion")
-        async for delta in stream.code:
-            if stop_criterion(buff, delta):
-                break
-            else:
-                buff += delta
-
-        return buff
+    def __str__(self):
+        return f"<{type(self).__name__} {self.id}>"
 
     async def _worker(self):
         try:
             self.server.register_change_callback(self.on_change, self.uri)
             await self._worker_core()
-        except asyncio.CancelledError:
-            logger.info("worker cancelled")
+        except asyncio.CancelledError as e:
+            logger.info(f"{self} cancelled: {e}")
             self.status = Status.error
         except Exception as e:
             logger.exception("worker failed")
@@ -193,16 +156,18 @@ class Helper:
             await self.send_progress()
 
     async def _worker_core(self):
-        client = self.server.client
+        model = self.model
         pos = self.cursor
         offset = self.document.position_to_offset(pos)
         doc_text = self.document.text
 
-        stream: InsertCodeResult = await client.insert_code(
+        stream: InsertCodeResult = await model.insert_code(
             doc_text, offset, goal=self.cfg.task
         )
         logger.debug("starting streaming code")
+        all_deltas = []
         async for delta in stream.code:
+            all_deltas.append(delta)
             assert len(delta) > 0
             attempts = 10
             while True:
@@ -234,7 +199,8 @@ class Helper:
                 self.cursor += len(delta)
                 self.ranges.add(added_range)
                 await self.send_progress()
-        logger.info("finished streaming code.")
+        all_text = "".join(all_deltas)
+        logger.info(f"{self} finished streaming {len(all_text)} characters")
         if stream.thoughts is not None:
             thoughts = await stream.thoughts.read()
             return thoughts

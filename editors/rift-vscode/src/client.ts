@@ -18,6 +18,7 @@ import * as net from 'net'
 import { join } from 'path';
 import { ChatHelperProgress } from './types';
 import delay from 'delay'
+import * as tcpPortUsed from 'tcp-port-used'
 
 let client: LanguageClient
 
@@ -148,18 +149,14 @@ export class HelperLens extends vscode.CodeLens {
 }
 
 interface ModelConfig {
-    type: "openai" | 'hf' | 'gpt4all'
-    /** Identifier of the model (used to download it). You can also set GPT4ALL_MODEL_NAME. */
-    name?: string
-    /** Path to model (for gpt4all). You can also set the GPT4ALL_MODEL_PATH param. */
-    path?: string
+    chatModel: string
+    completionsModel: string
     /** The API key for OpenAI, you can also set OPENAI_API_KEY. */
     openai_api_key?: string
 }
 
 export class MorphLanguageClient implements vscode.CodeLensProvider<HelperLens> {
     client: LanguageClient
-    chat_client: LanguageClient
     red: vscode.TextEditorDecorationType
     green: vscode.TextEditorDecorationType
     context: vscode.ExtensionContext
@@ -170,7 +167,6 @@ export class MorphLanguageClient implements vscode.CodeLensProvider<HelperLens> 
     constructor(context: vscode.ExtensionContext) {
         this.context = context
         this.create_client()
-        this.create_chat_client()        
         this.changeLensEmitter = new vscode.EventEmitter<void>()
         this.onDidChangeCodeLenses = this.changeLensEmitter.event
         // [todo] rename rift and morph/ to release name
@@ -179,7 +175,6 @@ export class MorphLanguageClient implements vscode.CodeLensProvider<HelperLens> 
             vscode.commands.registerCommand('rift.accept', (id: number) => this.client.sendNotification('morph/accept', { id })),
             vscode.commands.registerCommand('rift.reject', (id: number) => this.client.sendNotification('morph/reject', { id })),
             vscode.workspace.onDidChangeConfiguration(this.on_config_change.bind(this)),
-            vscode.workspace.onDidChangeConfiguration(this.on_chat_config_change.bind(this)),           
         )
 
     }
@@ -187,24 +182,12 @@ export class MorphLanguageClient implements vscode.CodeLensProvider<HelperLens> 
     public get_config() {
         const cfg = vscode.workspace.getConfiguration('rift')
         const values: ModelConfig = {
-            'type': cfg.get('modelType') as any,
-            'name': cfg.get('modelName'),
-            'path': cfg.get('modelPath'),
+            'chatModel': cfg.get('chatModel') as any,
+            'completionsModel': cfg.get('completionsModel') as any,
             'openai_api_key': cfg.get('openaiKey'),
         }
         return values
     }
-
-    public get_chat_config() {
-        const cfg = vscode.workspace.getConfiguration('rift')
-        const values: ModelConfig = {
-            'type': cfg.get('chatModelType') as any,
-            'name': cfg.get('chatModelName'),
-            'path': cfg.get('chatModelPath'),
-            'openai_api_key': cfg.get('openaiKey'),
-        }
-        return values
-    }    
 
     public provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): HelperLens[] {
         // this returns all of the lenses for the document.
@@ -248,21 +231,28 @@ export class MorphLanguageClient implements vscode.CodeLensProvider<HelperLens> 
         return null
     }
 
+    is_running() {
+        return this.client && this.client.state == State.Running
+    }
+
     async create_client() {
+        if (this.client && this.client.state != State.Stopped) {
+            console.log(`client already exists and is in state ${this.client.state}`)
+            return
+        }
         const port = DEFAULT_PORT
         let serverOptions: ServerOptions
+        while (!(await tcpPortUsed.check(port))) {
+            console.log('waiting for server to come online')
+            try {
+                await tcpPortUsed.waitUntilUsed(port, 500, 1000000)
+            }
+            catch (e) {
+                console.error(e)
+            }
+        }
+        console.log(`server detected on port ${port}`)
         serverOptions = tcpServerOptions(this.context, port)
-        // const portInUse = await tcpPortUsed.check(port)
-        // if (portInUse) {
-        //     // if the port is in use, connect to it
-        //     serverOptions = tcpServerOptions(this.context, port)
-        //     // [todo] add a message saying that we are connecting to an existing dev server
-        // } else {
-        //     // otherwise, lets spin up our own server
-        //     serverOptions = createServerOptions(this.context)
-        //     // [todo] the bundled server can take a few seconds to start up,
-        //     // we need to add a message here telling the user that we are starting up
-        // }
         const clientOptions: LanguageClientOptions = {
             documentSelector: [{ language: '*' }]
         }
@@ -270,48 +260,29 @@ export class MorphLanguageClient implements vscode.CodeLensProvider<HelperLens> 
             'morph-server', 'Morph Server',
             serverOptions, clientOptions,
         )
+        this.client.onDidChangeState(async e => {
+            console.log(`client state changed: ${e.oldState} ▸ ${e.newState}`)
+            if (e.newState === State.Stopped) {
+                console.log('morph server stopped, restarting...')
+                await this.client.dispose()
+                console.log('morph server disposed')
+                await this.create_client()
+            }
+        })
         await this.client.start()
         this.client.onNotification('morph/progress', this.morph_notify.bind(this))
-        this.client.sendRequest('morph/set_client_config', this.get_config())
+        this.client.sendRequest('morph/set_model_config', this.get_config())
+        console.log('rift-engine started')
     }
 
-    async create_chat_client() {
-        const port = DEFAULT_PORT
-        let serverOptions: ServerOptions
-        serverOptions = tcpServerOptions(this.context, port)
-        // const portInUse = await tcpPortUsed.check(port)
-        // if (portInUse) {
-        //     // if the port is in use, connect to it
-        //     serverOptions = tcpServerOptions(this.context, port)
-        //     // [todo] add a message saying that we are connecting to an existing dev server
-        // } else {
-        //     // otherwise, lets spin up our own server
-        //     serverOptions = createServerOptions(this.context)
-        //     // [todo] the bundled server can take a few seconds to start up,
-        //     // we need to add a message here telling the user that we are starting up
-        // }
-        const chatClientOptions: LanguageClientOptions = {
-            documentSelector: [{ language: '*' }]
-        }
-        this.chat_client = new LanguageClient(
-            'morph-server', 'Morph Server',
-            serverOptions, chatClientOptions,
-        )
-        await this.client.start()
-        // this.client.onNotification('morph/progress', this.morph_notify.bind(this))
-        this.client.sendRequest('morph/set_chat_client_config', this.get_chat_config())
-    }    
 
     async on_config_change(args) {
-        const x = await this.client.sendRequest('morph/set_client_config', this.get_config())
+        const x = await this.client.sendRequest('morph/set_model_config', this.get_config())
     }
 
-    async on_chat_config_change(args) {
-        const x = await this.client.sendRequest('morph/set_chat_client_config', this.get_chat_config())
-    }    
 
     async morph_notify(params: RunHelperProgress) {
-        if (this.client.state !== State.Running) {
+        if (!this.is_running()) {
             throw new Error('client not running, please wait...') // [todo] better ux here.
         }
         const helper = this.helpers.get(params.id)
@@ -333,6 +304,9 @@ export class MorphLanguageClient implements vscode.CodeLensProvider<HelperLens> 
     }
 
     async run_helper(params: RunHelperParams) {
+        if (!this.client) {
+            throw new Error(`waiting for a connection to rift-engine, please make sure the rift-engine is running on port ${DEFAULT_PORT}`) // [todo] better ux here.
+        }
         const result: RunHelperResult = await this.client.sendRequest('morph/run_helper', params)
         const helper = new Helper(result.id, params.position, params.textDocument)
         helper.onStatusChange(e => this.changeLensEmitter.fire())

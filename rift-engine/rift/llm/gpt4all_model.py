@@ -2,6 +2,7 @@ import asyncio
 import ctypes
 import logging
 from pathlib import Path
+import threading
 from typing import Optional, List
 
 from pydantic import BaseSettings, Field
@@ -124,6 +125,8 @@ DEFAULT_MODEL_NAME = "ggml-gpt4all-j-v1.3-groovy"
 # DEFAULT_MODEL_NAME = "ggml-mpt-7b-chat"
 # DEFAULT_MODEL_NAME = "ggml-replit-code-v1-3b"
 
+create_model_lock = threading.Lock()
+
 
 class Gpt4AllSettings(BaseSettings):
     model_name: str = DEFAULT_MODEL_NAME
@@ -142,13 +145,14 @@ class Gpt4AllSettings(BaseSettings):
         return s
 
     def create_model(self):
-        kwargs = {"model_name": self.model_name}
-        if self.model_path is not None:
-            kwargs["model_path"] = str(self.model_path)
-        if self.model_type is not None:
-            kwargs["model_type"] = self.model_type
-        model = GPT4All(**kwargs)
-        return model
+        with create_model_lock:
+            kwargs = {"model_name": self.model_name}
+            if self.model_path is not None:
+                kwargs["model_path"] = str(self.model_path)
+            if self.model_type is not None:
+                kwargs["model_type"] = self.model_type
+            model = GPT4All(**kwargs)
+            return model
 
 
 class Gpt4AllModel(AbstractCodeCompletionProvider, AbstractChatCompletionProvider):
@@ -156,7 +160,7 @@ class Gpt4AllModel(AbstractCodeCompletionProvider, AbstractChatCompletionProvide
         if config is None:
             config = Gpt4AllSettings()
         self.config = config
-        logger.info(f"creating model {self.config}")
+        logger.info(f"creating gpt4all model {self.config}")
         self.name = config.model_name
         self._model_future = None
 

@@ -2,7 +2,7 @@
   "name": "rift-vscode",
   "displayName": "Rift",
   "description": "Rift: an AI-native language server for your personal AI software engineer.",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "icon": "resources/vsce-icon.png",
   "licence": "Apache 2.0",
   "publisher": "Morph",
@@ -24,6 +24,11 @@
   ],
   "main": "./out/main.js",
   "contributes": {
+    "keybindings": {
+      "command": "rift.run_helper",
+      "key": "ctrl+m",
+      "when": "editorTextFocus"
+    },
     "configuration": {
       "title": "Rift",
       "properties": {
@@ -35,67 +40,26 @@
           "default": null,
           "description": "OpenAI API key"
         },
-        "rift.modelType": {
+        "rift.completionsModel": {
           "type": "string",
+          "default": "gpt4all:ggml-replit-code-v1-3b",
           "enum": [
-            "gpt4all",
-            "openai",
-            "hf"
+            "gpt4all:ggml-replit-code-v1-3b",
+            "openai:gpt-3.5-turbo",
+            "openai:gpt-4"
           ],
-          "enumDescriptions": [
-            "On-device model using ggml and gpt4all",
-            "OpenAI API",
-            "HuggingFace model"
-          ],
-          "default": "gpt4all",
-          "markdownDescription": "The model provider to use. `gpt4all` and `hf` are local models. If you use `openai`, make sure that the `rift.openaiKey` setting is set to your OpenAI API key."
+          "markdownDescription": "model to use for completions. (remember to set the OpenAI API key if using an openai:* model). You can also set your own (use the JSON settings editor), the format is `{type}:{name} [@ {path}]` where `type` is one of `gpt4all`, `openai`, or `hf` (for huggingface models), `name` is the name of the model, and `path` is an optional path to the downloaded model weights."
         },
-        "rift.modelName": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": "ggml-replit-code-v1-3b",
-          "markdownDescription": "The name of the model to use. Be sure to set `#rift.modelType#` appropriately. For `gpt4all`, this is the name of the Gpt4all model. For `hf`, this is the name of a HuggingFace model. For `openai`, this is the name of the OpenAI model."
-        },
-        "rift.modelPath": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "markdownDescription": "The path to the model to use for on-device inference. Be sure to set `#rift.modelType#` appropriately. For `gpt4all`, this is URI of a (gpt4all model)[https://gpt4all.io/models/models.json]. For `hf`, this is the path to the weights of a (HuggingFace model)[https://huggingface.co/docs/hub/index]. For `openai`, this should be `none`."
-        },
-        "rift.chatModelType": {
+        "rift.chatModel": {
           "type": "string",
+          "default": "gpt4all:ggml-mpt-7b-chat",
           "enum": [
-            "gpt4all",
-            "openai",
-            "hf"
+            "gpt4all:ggml-mpt-7b-chat",
+            "gpt4all:ggml-gpt4all-j-v1.3-groovy",
+            "openai:gpt-3.5-turbo",
+            "openai:gpt-4"
           ],
-          "enumDescriptions": [
-            "On-device model using ggml and gpt4all",
-            "OpenAI API",
-            "HuggingFace model"
-          ],
-          "default": "gpt4all",
-          "markdownDescription": "The model provider to use. `gpt4all` and `hf` are local models. If you use `openai`, make sure that the `rift.openaiKey` setting is set to your OpenAI API key."
-        },
-        "rift.chatModelName": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": "ggml-mpt-7b-chat",
-          "markdownDescription": "The name of the model to use. Be sure to set `#rift.chatModelType#` appropriately. For `gpt4all`, this is the name of the Gpt4all model. For `hf`, this is the name of a HuggingFace model. For `openai`, this is the name of the OpenAI model."
-        },
-        "rift.chatModelPath": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "markdownDescription": "The path to the model to use for on-device inference. Be sure to set `#rift.chatModelType#` appropriately. For `gpt4all`, this is URI of a (gpt4all model)[https://gpt4all.io/models/models.json]. For `hf`, this is the path to the weights of a (HuggingFace model)[https://huggingface.co/docs/hub/index]. For `openai`, this should be `none`."
+          "markdownDescription": "model to use for completions. (remember to set the OpenAI API key if using an openai:* model). You can also set your own (use the JSON settings editor), the format is `{type}:{name} [@ {path}]` where `type` is one of `gpt4all`, `openai`, or `hf` (for huggingface models), `name` is the name of the model, and `path` is an optional path to the downloaded model weights."
         }
       }
     },

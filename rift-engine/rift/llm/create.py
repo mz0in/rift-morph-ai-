@@ -3,38 +3,45 @@ import weakref
 from pydantic import BaseModel, SecretStr
 from typing import Literal, Optional
 
-from rift.llm.abstract import AbstractCodeCompletionProvider
+from rift.llm.abstract import (
+    AbstractCodeCompletionProvider,
+    AbstractChatCompletionProvider,
+)
 
 
-class ClientConfig(BaseModel):
-    type: Literal["openai", "hf", "gpt4all"]
-    name: Optional[str] = None
-    path: Optional[str] = None
-    """ For gpt4all models, the path to the model. """
+class ModelConfig(BaseModel):
+    chatModel: str
+    completionsModel: str
     openai_api_key: Optional[SecretStr] = None
 
     def __hash__(self):
-        return hash((self.type, self.name, self.path, str(self.openai_api_key)))
+        return hash((self.chatModel, self.completionsModel))
 
     def __eq__(self, other):
         return hash(self) == hash(other)
 
-    def create(self) -> AbstractCodeCompletionProvider:
-        return create_client(self)
+    def create_chat(self) -> AbstractChatCompletionProvider:
+        c = create_client(self.chatModel, self.openai_api_key)
+        assert isinstance(c, AbstractChatCompletionProvider)
+        return c
+
+    def create_completions(self) -> AbstractCodeCompletionProvider:
+        return create_client(self.completionsModel, self.openai_api_key)
 
     @classmethod
     def default(cls):
-        return ClientConfig(type="gpt4all", name="ggml-replit-code-v1-3b")
-
-    @classmethod
-    def default_chat(cls):
-        return ClientConfig(type="gpt4all", name="ggml-gpt4all-j-v1.3-groovy")
+        return ModelConfig(
+            completionsModel="gpt4all:ggml-replit-code-v1-3b",
+            chatModel="gpt4all:ggml-mpt-7b-chat",
+        )
 
 
 CLIENTS = weakref.WeakValueDictionary()
 
 
-def create_client(config: ClientConfig) -> AbstractCodeCompletionProvider:
+def create_client(
+    config: str, openai_api_key: Optional[SecretStr] = None
+) -> AbstractCodeCompletionProvider:
     """Create a client for the given config. If the client has already been created, then it will return a cached one.
 
     Note that it uses a WeakValueDictionary, so if the client is no longer referenced, it will be garbage collected.
@@ -46,34 +53,48 @@ def create_client(config: ClientConfig) -> AbstractCodeCompletionProvider:
     if config in CLIENTS:
         return CLIENTS[config]
     else:
-        client = create_client_core(config)
+        client = create_client_core(config, openai_api_key)
         CLIENTS[config] = client
         return client
 
 
-def create_client_core(config: ClientConfig) -> AbstractCodeCompletionProvider:
-    if config.type == "hf":
+def create_client_core(
+    config: str, openai_api_key: Optional[SecretStr]
+) -> AbstractCodeCompletionProvider:
+    assert ":" in config, f"Invalid config: {config}"
+    type, rest = config.split(":", 1)
+    type = type.strip()
+    if "@" in rest:
+        name, path = rest.split("@", 1)
+    else:
+        name = rest
+        path = ""
+    name = name.strip()
+    path = path.strip()
+    if type == "hf":
         from rift.llm.hf_client import HuggingFaceClient
 
-        return HuggingFaceClient(config.name)
-    elif config.type == "openai":
+        return HuggingFaceClient(name)
+    elif type == "openai":
         from rift.llm.openai_client import OpenAIClient
 
         kwargs = {}
-        if config.name:
-            kwargs["default_model"] = config.name
-        if config.openai_api_key:
-            kwargs["api_key"] = config.openai_api_key
+        if name:
+            kwargs["default_model"] = name
+        if openai_api_key:
+            kwargs["api_key"] = openai_api_key
         return OpenAIClient.parse_obj(kwargs)
 
-    elif config.type == "gpt4all":
+    elif type == "gpt4all":
         from rift.llm.gpt4all_model import Gpt4AllSettings, Gpt4AllModel
 
         kwargs = {}
-        if config.name:
-            kwargs["model_name"] = config.name
+        if name:
+            kwargs["model_name"] = name
+        if path:
+            kwargs["model_path"] = path
         settings = Gpt4AllSettings.parse_obj(kwargs)
         return Gpt4AllModel(settings)
 
     else:
-        raise ValueError(f"Unknown model type: {config.type}")
+        raise ValueError(f"Unknown model: {config}")
