@@ -1,0 +1,8 @@
+
+scratch/
+build/
+dist/
+
+.env
+
+*.spec

@@ -1,0 +1,166 @@
+{
+  "name": "rift-vscode",
+  "displayName": "Rift",
+  "description": "Rift: an AI-native language server for your personal AI software engineer.",
+  "version": "0.0.7",
+  "icon": "resources/vsce-icon.png",
+  "licence": "Apache 2.0",
+  "publisher": "Morph",
+  "repository": "https://github.com/morph-labs/rift",
+  "engines": {
+    "vscode": "^1.71.0"
+  },
+  "contributors": [
+    {
+      "name": "Morph Labs",
+      "email": "support@morph.so"
+    }
+  ],
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:RiftChat"
+  ],
+  "main": "./out/main.js",
+  "contributes": {
+    "configuration": {
+      "title": "Rift",
+      "properties": {
+        "rift.openaiKey": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "OpenAI API key"
+        },
+        "rift.modelType": {
+          "type": "string",
+          "enum": [
+            "gpt4all",
+            "openai",
+            "hf"
+          ],
+          "enumDescriptions": [
+            "On-device model using ggml and gpt4all",
+            "OpenAI API",
+            "HuggingFace model"
+          ],
+          "default": "gpt4all",
+          "markdownDescription": "The model provider to use. `gpt4all` and `hf` are local models. If you use `openai`, make sure that the `rift.openaiKey` setting is set to your OpenAI API key."
+        },
+        "rift.modelName": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": "ggml-replit-code-v1-3b",
+          "markdownDescription": "The name of the model to use. Be sure to set `#rift.modelType#` appropriately. For `gpt4all`, this is the name of the Gpt4all model. For `hf`, this is the name of a HuggingFace model. For `openai`, this is the name of the OpenAI model."
+        },
+        "rift.modelPath": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "markdownDescription": "The path to the model to use for on-device inference. Be sure to set `#rift.modelType#` appropriately. For `gpt4all`, this is URI of a (gpt4all model)[https://gpt4all.io/models/models.json]. For `hf`, this is the path to the weights of a (HuggingFace model)[https://huggingface.co/docs/hub/index]. For `openai`, this should be `none`."
+        },
+        "rift.chatModelType": {
+          "type": "string",
+          "enum": [
+            "gpt4all",
+            "openai",
+            "hf"
+          ],
+          "enumDescriptions": [
+            "On-device model using ggml and gpt4all",
+            "OpenAI API",
+            "HuggingFace model"
+          ],
+          "default": "gpt4all",
+          "markdownDescription": "The model provider to use. `gpt4all` and `hf` are local models. If you use `openai`, make sure that the `rift.openaiKey` setting is set to your OpenAI API key."
+        },
+        "rift.chatModelName": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": "ggml-mpt-7b-chat",
+          "markdownDescription": "The name of the model to use. Be sure to set `#rift.chatModelType#` appropriately. For `gpt4all`, this is the name of the Gpt4all model. For `hf`, this is the name of a HuggingFace model. For `openai`, this is the name of the OpenAI model."
+        },
+        "rift.chatModelPath": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "markdownDescription": "The path to the model to use for on-device inference. Be sure to set `#rift.chatModelType#` appropriately. For `gpt4all`, this is URI of a (gpt4all model)[https://gpt4all.io/models/models.json]. For `hf`, this is the path to the weights of a (HuggingFace model)[https://huggingface.co/docs/hub/index]. For `openai`, this should be `none`."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "Rift",
+          "title": "Chat",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "Rift": [
+        {
+          "type": "webview",
+          "id": "RiftChat",
+          "name": "Chat"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "RiftChat",
+        "contents": "Chat with a local code model."
+      }
+    ],
+    "commands": [
+      {
+        "command": "rift.run_helper",
+        "title": "Rift: Code Completion"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "node ./build.mjs",
+    "watch": "node ./build.mjs --watch",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.0.0",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "16.x",
+    "@types/react": "^18.0.26",
+    "@types/react-dom": "^18.0.10",
+    "@types/vscode": "^1.71.0",
+    "@types/websocket": "^1.0.5",
+    "@typescript-eslint/eslint-plugin": "^5.38.1",
+    "@typescript-eslint/parser": "^5.38.1",
+    "@vscode/test-electron": "^2.1.5",
+    "esbuild": "^0.16.17",
+    "eslint": "^8.24.0",
+    "glob": "^8.0.3",
+    "mocha": "^10.0.0",
+    "typescript": "^4.8.4"
+  },
+  "dependencies": {
+    "@vscode/vsce": "^2.19.0",
+    "delay": "^6.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tcp-port-used": "^1.0.1",
+    "vscode-languageclient": "^8.0.2"
+  }
+}

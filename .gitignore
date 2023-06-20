@@ -1,0 +1,15 @@
+./editors/**/out
+./editors/**/dist
+./editors/**/node_modules
+./editors/**/.vscode-test/
+./editors/**/*.vsix
+./editors/**/.html
+./editors/**/tailwind.config.js
+
+../scratch/
+../build/
+../dist/
+../.env
+../*.spec
+
+*__pycache__/

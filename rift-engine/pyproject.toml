@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rift"
+description = ''
+readme = "README.md"
+requires-python = ">=3.7"
+license = "Apache-2.0"
+keywords = []
+authors = [
+  { name = "Morph Labs", email = "support@morph.so" },
+]
+dependencies = [
+  "aiohttp",
+  "miniscutil==0.2.13", # Ed Ayers' utility library (including LSP stuff)
+  "pydantic[dotenv]",
+  "rich",
+  "fire",
+  "gpt4all==0.3.4",
+  "torch",
+  "transformers",
+  "tiktoken",
+  "sentencepiece",
+]
+dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://github.com/morph-labs/rift#readme"
+Issues = "https://github.com/morph-labs/rift/issues"
+Source = "https://github.com/morph-labs/rift"
+
+[project.scripts]
+rift = "rift.server.core:app"
+
+[tool.hatch.version]
+path = "rift/__about__.py"
+
+[tool.hatch.envs.default]
+dependencies = [
+  "pytest",
+  "pytest-cov",
+  'pyinstaller',
+  "gpt4all==0.3.4",
+  "einops",
+]
+
+[tool.hatch.envs.default.scripts]
+cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=rift --cov=tests {args}"
+no-cov = "cov --no-cov {args}"
+dev = "python -m rift.server.core --debug {args}"
+bundle = "pyinstaller rift/server/core.py --name rift -y --collect-all gpt4all --onefile --log-level=DEBUG {args}"
+
+[[tool.hatch.envs.test.matrix]]
+python = ["39", "310", "311"]
+
+[tool.coverage.run]
+branch = true
+parallel = true
+omit = [
+  "rift/__about__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
