@@ -14,7 +14,7 @@ authors = [
 ]
 dependencies = [
   "aiohttp",
-  "miniscutil==0.2.14", # Ed Ayers' utility library (including LSP stuff)
+  "miniscutil==0.2.15",
   "pydantic[dotenv]",
   "rich",
   "fire",
