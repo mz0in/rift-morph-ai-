@@ -99,7 +99,7 @@ class ChatCompletionRequest(BaseModel):
     """ An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both. """
     n: Optional[int] = Field(default=None)
     """How many chat completion choices to generate for each input message."""
-    stop: Optional[str | list[str]] = Field(default=None)
+    stop: Optional[Union[str, list[str]]] = Field(default=None)
     """ Up to 4 sequences where the API will stop generating further tokens. """
     presence_penalty: Optional[float] = Field(default=None, ge=-2, le=2)
     """ Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics. """
