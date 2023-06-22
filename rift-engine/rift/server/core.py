@@ -69,6 +69,9 @@ class CodeCapabilitiesServer:
             await server.serve_forever()
         except Exception as e:
             logger.error("caught: " + str(e))
+            logger.info(
+                f"connection closed, but Rift is still running and accepting new connections."
+            )
 
     async def run_lsp_tcp_client_mode(self):
         assert isinstance(self.lsp_port, int)
