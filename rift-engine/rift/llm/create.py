@@ -83,6 +83,8 @@ def create_client_core(
             kwargs["default_model"] = name
         if openai_api_key:
             kwargs["api_key"] = openai_api_key
+        if path:
+            kwargs["api_url"] = path
         return OpenAIClient.parse_obj(kwargs)
 
     elif type == "gpt4all":
