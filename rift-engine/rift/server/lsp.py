@@ -3,9 +3,9 @@ from dataclasses import dataclass, field
 import logging
 from typing import ClassVar, Optional, List
 from typing import Literal
-from miniscutil.lsp import LspServer as BaseLspServer, rpc_method
-from miniscutil.rpc import RpcServerStatus
-import miniscutil.lsp.types as lsp
+from rift.lsp import LspServer as BaseLspServer, rpc_method
+from rift.rpc import RpcServerStatus
+import rift.lsp.types as lsp
 from rift.llm.abstract import (
     AbstractCodeCompletionProvider,
     AbstractChatCompletionProvider,

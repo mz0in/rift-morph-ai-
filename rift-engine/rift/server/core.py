@@ -3,7 +3,7 @@ import sys
 import logging
 from typing import Literal, Union, Optional
 from rift.server.lsp import LspServer
-from miniscutil.rpc.io_transport import AsyncStreamTransport, create_pipe_streams
+from rift.rpc.io_transport import AsyncStreamTransport, create_pipe_streams
 from rift.__about__ import __version__
 import sys
 import time

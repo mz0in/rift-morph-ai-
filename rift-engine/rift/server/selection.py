@@ -2,8 +2,8 @@ from dataclasses import dataclass
 import itertools
 from typing import Iterable, Union
 
-from miniscutil.lsp.types import Range, Position, TextDocumentContentChangeEvent
-from miniscutil.ofdict import todict, ofdict
+from rift.lsp.types import Range, Position, TextDocumentContentChangeEvent
+from rift.util.ofdict import todict, ofdict
 
 
 class RangeSet:
