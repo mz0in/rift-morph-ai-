@@ -1,7 +1,8 @@
 import asyncio
 from dataclasses import dataclass, field
 import logging
-from typing import ClassVar, Literal, Optional, List
+from typing import ClassVar, Optional, List
+from typing import Literal
 from miniscutil.lsp import LspServer as BaseLspServer, rpc_method
 from miniscutil.rpc import RpcServerStatus
 import miniscutil.lsp.types as lsp
@@ -201,9 +202,15 @@ class LspServer(BaseLspServer):
         self.logger = logging.getLogger(f"rift")
         self.logger.addHandler(LspLogHandler(self))
 
-    @rpc_method("morph/set_model_config")
-    async def on_set_model_config(self, config: ModelConfig):
-        """This is called whenever the user changes the model config settings.
+    @rpc_method("workspace/didChangeConfiguration")
+    async def on_workspace_did_change_configuration(
+        self, params: lsp.DidChangeConfigurationParams
+    ):
+        logger.info("workspace/didChangeConfiguration")
+        await self.get_config()
+
+    async def get_config(self):
+        """This should be called whenever the user changes the model config settings.
 
         It should also be called immediately after initialisation."""
         if self._loading_task is not None:
@@ -223,6 +230,13 @@ class LspServer(BaseLspServer):
                 )
                 return
             # only the most recent request will make it here.
+        settings = await self.get_workspace_configuration(section="rift")
+        if not isinstance(settings, list) or len(settings) != 1:
+            raise RuntimeError(
+                f"Invalid settings:\n{settings}\nExpected a list of dictionaries."
+            )
+        settings = settings[0]
+        config = ModelConfig.parse_obj(settings)
         if self.chat_model and self.completions_model and self.model_config == config:
             logger.debug("config unchanged")
             return
@@ -287,19 +301,13 @@ class LspServer(BaseLspServer):
 
     async def ensure_completions_model(self):
         if self.completions_model is None:
-            logger.error(
-                'morph/run_helper was called before "morph/set_model_config". Using the defualt model.'
-            )
-            await self.on_set_model_config(ModelConfig.default())
+            await self.get_config()
         assert self.completions_model is not None
         return self.completions_model
 
     async def ensure_chat_model(self):
         if self.chat_model is None:
-            logger.error(
-                'morph/run_helper was called before "morph/set_chat_model_config". Using the defualt model.'
-            )
-            await self.on_set_model_config(ModelConfig.default())
+            await self.get_config()
         assert self.chat_model is not None
         return self.chat_model
 

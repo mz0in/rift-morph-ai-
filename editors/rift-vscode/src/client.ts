@@ -271,13 +271,12 @@ export class MorphLanguageClient implements vscode.CodeLensProvider<HelperLens> 
         })
         await this.client.start()
         this.client.onNotification('morph/progress', this.morph_notify.bind(this))
-        this.client.sendRequest('morph/set_model_config', this.get_config())
         console.log('rift-engine started')
     }
 
 
     async on_config_change(args) {
-        const x = await this.client.sendRequest('morph/set_model_config', this.get_config())
+        const x = await this.client.sendRequest('workspace/didChangeConfiguration', {})
     }
 
 

@@ -2,7 +2,8 @@ import asyncio
 from dataclasses import dataclass, field
 from enum import Enum
 import logging
-from typing import Any, ClassVar, Literal, Optional, List
+from typing import Any, ClassVar, Optional, List
+from typing import Literal
 from miniscutil.lsp.document import setdoc
 import miniscutil.lsp.types as lsp
 import importlib.util

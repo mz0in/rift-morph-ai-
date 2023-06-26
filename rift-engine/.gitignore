@@ -5,4 +5,6 @@ dist/
 
 .env
 
+.p39/
+
 *.spec

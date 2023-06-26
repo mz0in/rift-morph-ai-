@@ -12,7 +12,7 @@ from rift.llm.abstract import (
 class ModelConfig(BaseModel):
     chatModel: str
     completionsModel: str
-    openai_api_key: Optional[SecretStr] = None
+    openaiKey: Optional[SecretStr] = None
 
     def __hash__(self):
         return hash((self.chatModel, self.completionsModel))
@@ -21,12 +21,12 @@ class ModelConfig(BaseModel):
         return hash(self) == hash(other)
 
     def create_chat(self) -> AbstractChatCompletionProvider:
-        c = create_client(self.chatModel, self.openai_api_key)
+        c = create_client(self.chatModel, self.openaiKey)
         assert isinstance(c, AbstractChatCompletionProvider)
         return c
 
     def create_completions(self) -> AbstractCodeCompletionProvider:
-        return create_client(self.completionsModel, self.openai_api_key)
+        return create_client(self.completionsModel, self.openaiKey)
 
     @classmethod
     def default(cls):

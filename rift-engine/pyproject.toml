@@ -14,7 +14,7 @@ authors = [
 ]
 dependencies = [
   "aiohttp",
-  "miniscutil==0.2.16",
+  "miniscutil==0.2.18",
   "pydantic[dotenv]",
   "rich",
   "fire",
