@@ -60,7 +60,7 @@ class OpenAIError(Exception):
 
 
 @cache
-def get_num_tokens(content):
+def get_num_tokens(content: str):
     return len(ENCODER.encode(content))
 
 
@@ -257,7 +257,7 @@ class OpenAIClient(
             )
 
     async def run_chat(
-        self, document: str, messages: List[Message], message: str
+        self, document: str, messages: List[Message], message: str, cursor_offset: Optional[int] = None
     ) -> ChatResult:
         chatstream = TextStream()
 

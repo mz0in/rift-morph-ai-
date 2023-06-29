@@ -44,7 +44,7 @@ class AbstractCodeCompletionProvider(ABC):
 class AbstractChatCompletionProvider(ABC):
     @abstractmethod
     async def run_chat(
-        self, document: str, messages: List[Message], message: str
+        self, document: str, messages: List[Message], message: str, cursor_offset: Optional[int] = None
     ) -> ChatResult:
         """
         Process the chat messages and return the completion results.
@@ -57,6 +57,8 @@ class AbstractChatCompletionProvider(ABC):
             A list of messages exchanged in the chat.
         message: str
             The latest message exchanged in the chat.
+        cursor_offset: Optional[int]
+            The offset of the cursor in the document.
 
         Returns:
         --------

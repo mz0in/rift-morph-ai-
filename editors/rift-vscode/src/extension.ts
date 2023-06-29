@@ -108,9 +108,10 @@ export class ChatView implements vscode.WebviewViewProvider {
             }
             // get the uri and position of the current cursor
             const doc = editor.document;
+            const position = editor.selection.active;
             const textDocument = { uri: doc.uri.toString(), version: 0 }
             if (!data.message || !data.messages) throw new Error()
-            this.hslc.run_chat({ message: data.message, messages: data.messages, textDocument }, (progress) => {
+            this.hslc.run_chat({ message: data.message, messages: data.messages, position, textDocument }, (progress) => {
                 if (!this._view) throw new Error()
                 if (progress.done) console.log('WEBVIEW DONE RECEIVEING / POSTING')
                 this._view.webview.postMessage({ type: 'progress', data: progress });

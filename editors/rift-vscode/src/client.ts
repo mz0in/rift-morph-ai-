@@ -74,7 +74,8 @@ interface RunChatParams {
         role: string,
         content: string
     }[],
-    textDocument: TextDocumentIdentifier
+    position: vscode.Position,
+    textDocument: TextDocumentIdentifier,
 }
 
 

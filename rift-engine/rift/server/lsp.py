@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class RunChatParams:
     message: str
     messages: List[ChatMessage]
+    position: Optional[lsp.Position]
     textDocument: lsp.TextDocumentIdentifier
 
 
@@ -76,7 +77,7 @@ class ChatHelper:
     running: bool
     server: "LspServer"
     change_futures: dict[str, asyncio.Future[None]]
-    cursor: lsp.Position
+    cursor: Optional[lsp.Position]
     task: Optional[asyncio.Task]
     """ The position of the cursor (where text will be inserted next). This position is changed if other edits occur above the cursor. """
 
@@ -100,7 +101,7 @@ class ChatHelper:
         self.server = server
         self.running = False
         self.change_futures = {}
-        # self.cursor = cfg.position
+        self.cursor = cfg.position
         self.document = server.documents[self.cfg.textDocument.uri]
         self.task = None
         self.subtasks = set()
@@ -146,9 +147,12 @@ class ChatHelper:
         async with response_lock:
             await self.send_progress(response)
         doc_text = self.document.text
+        pos = self.cursor
+        offset = None if pos is None else self.document.position_to_offset(pos)
+
 
         stream = await self.model.run_chat(
-            doc_text, self.cfg.messages, self.cfg.message
+            doc_text, self.cfg.messages, self.cfg.message, offset
         )
 
         async for delta in stream.text:
