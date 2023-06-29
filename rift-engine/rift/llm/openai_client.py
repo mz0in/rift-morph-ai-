@@ -68,25 +68,46 @@ def get_num_tokens(content: str):
 
 def message_length(msg: Message):
     with ENCODER_LOCK:
-        return get_num_tokens(msg.content)
+        length = get_num_tokens(msg.content)
+        # every message follows <im_start>{role/name}\n{content}<im_end>\n
+        # see https://platform.openai.com/docs/guides/gpt/managing-tokens
+        length += 6 
+        return length
 
 
 """
-Truncation Strategy:
+Contents Order in the Context:
 
-1) system message limited to MAX_SYSTEM_MESSAGE_SIZE tokens.
-2) non-system messages limited to the number of tokens available in addition to 1 and 3
-3) model's responses buffer limited to MAX_LEN_SAMPLED_COMPLETION tokens
+1) System Message: This includes an introduction and the current file content. 
+2) Non-System Messages: These are the previous dialogue turns in the chat, both from the user and the system.
+3) Model's Responses Buffer: This is a reserved space for the response that the model will generate.
+
+Truncation Strategy for Sizes:
+
+1) System Message Size: Limited to the maximum of either MAX_SYSTEM_MESSAGE_SIZE tokens or the remaining tokens available after accounting for non-system messages and the model's responses buffer.
+2) Non-System Messages Size: Limited to the number of tokens available after considering the size of the system message and the model's responses buffer.
+3) Model's Responses Buffer Size: Always reserved to MAX_LEN_SAMPLED_COMPLETION tokens.
+
+The system message size can dynamically increase beyond MAX_SYSTEM_MESSAGE_SIZE if there is remaining space within the MAX_CONTEXT_SIZE after accounting for non-system messages and the model's responses.
 """
 
 MAX_CONTEXT_SIZE = 4096  # Total token limit for GPT models
 MAX_LEN_SAMPLED_COMPLETION = 512  # Reserved tokens for model's responses
 MAX_SYSTEM_MESSAGE_SIZE = 1024 # Token limit for system message
 
-def max_non_system_msgs_size(system_message_size: int) -> int:
+def calc_max_non_system_msgs_size(system_message_size: int) -> int:
     """ Maximum size of the non-system messages """
     return MAX_CONTEXT_SIZE - MAX_LEN_SAMPLED_COMPLETION - system_message_size
 
+def calc_max_system_message_size(non_system_messages_size: int) -> int:
+    """ Maximum size of the system message """
+
+    # Calculate the maximum size for the system message. It's either the maximum defined limit 
+    # or the remaining tokens in the context size after accounting for model responses and non-system messages,
+    # whichever is larger. This ensures that the system message can take advantage of spare space, if available.
+    return max(
+            MAX_SYSTEM_MESSAGE_SIZE,
+            MAX_CONTEXT_SIZE - MAX_LEN_SAMPLED_COMPLETION - non_system_messages_size)
 
 def create_system_message(document: str) -> Message:
     """
@@ -142,7 +163,7 @@ def create_system_message_truncated(document: str, max_size:int, cursor_offset: 
 
 def truncate_messages(messages: List[Message]):
     system_message_size = message_length(messages[0])
-    max_size = max_non_system_msgs_size(system_message_size)
+    max_size = calc_max_non_system_msgs_size(system_message_size)
     tail_messages = []
     running_length = 0
     for msg in reversed(messages[1:]):
@@ -336,15 +357,20 @@ class OpenAIClient(
     ) -> ChatResult:
         chatstream = TextStream()
 
-        system_message = create_system_message_truncated(document, MAX_SYSTEM_MESSAGE_SIZE, cursor_offset)
+        non_system_messages = (
+            [Message.mk(role=msg.role, content=msg.content) for msg in messages]
+            +
+            [Message.user(content=message)]
+            )                
+        non_system_messages_size = sum([message_length(msg) for msg in non_system_messages])
 
-        messages = (
-            [system_message]
-            + [Message.mk(role=msg.role, content=msg.content) for msg in messages]
-            + [Message.user(content=message)]
-        )
+        max_system_msg_size = calc_max_system_message_size(non_system_messages_size)
+        system_message = create_system_message_truncated(document, max_system_msg_size, cursor_offset)
+
+        messages = [system_message] + non_system_messages
 
         num_old_messages = len(messages)
+        # Truncate the messages to ensure that the total set of messages (system and non-system) fit within MAX_CONTEXT_SIZE
         messages = truncate_messages(messages)
         logger.info(
             f"Truncated {num_old_messages - len(messages)} non-system messages due to context length overflow."
