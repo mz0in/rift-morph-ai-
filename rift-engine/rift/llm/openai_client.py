@@ -71,35 +71,87 @@ def message_length(msg: Message):
         return get_num_tokens(msg.content)
 
 
+"""
+Truncation Strategy:
+
+1) system message limited to MAX_SYSTEM_MESSAGE_SIZE tokens.
+2) non-system messages limited to the number of tokens available in addition to 1 and 2
+3) model's responses buffer limited to MAX_LEN_SAMPLED_COMPLETION tokens
+"""
+
+MAX_CONTEXT_SIZE = 4096  # Total token limit for GPT models
+MAX_LEN_SAMPLED_COMPLETION = 512  # Reserved tokens for model's responses
+MAX_SYSTEM_MESSAGE_SIZE = 1024 # Token limit for system message
+
+def max_non_system_msgs_size(system_message_size: int) -> int:
+    """ Maximum size of the non-system messages """
+    return MAX_CONTEXT_SIZE - MAX_LEN_SAMPLED_COMPLETION - system_message_size
+
+
+def create_system_message(document: str) -> Message:
+    """
+    Create system message wiht up to MAX_SYSTEM_MESSAGE_SIZE tokens
+    """
+    return Message.system(
+                    f"""
+You are an expert software engineer and world-class systems architect with deep technical and design knowledge. Answer the user's questions about the code as helpfully as possible, quoting verbatim from the current file to support your claims.
+
+Current file:
+```
+{document}
+```
+
+Answer the user's question."""
+    )
+
+
+def create_system_message_truncated(document: str, max_size:int, cursor_offset: Optional[int]) -> Message:
+    """
+    Create system message with up to MAX_SYSTEM_MESSAGE_SIZE tokens
+    """
+
+    hardcoded_message = create_system_message("")
+    hardcoded_message_size = message_length(hardcoded_message)
+    max_size = max_size - hardcoded_message_size
+
+    doc_tokens = ENCODER.encode(document)
+    if len(doc_tokens) > max_size:
+        if cursor_offset:
+            before_cursor = document[:cursor_offset]
+            tokens_before_cursor = ENCODER.encode(before_cursor)
+            start_index = max(0, len(tokens_before_cursor) - max_size // 2)
+            end_index = start_index + max_size
+
+            # if the cursor is too close to the end of the document, take more tokens from the start
+            if end_index > len(doc_tokens):
+                end_index = len(doc_tokens)
+                start_index = end_index - max_size
+
+            logger.debug(f"Truncating document to {start_index}:{end_index}")
+            tokens = doc_tokens[start_index:end_index]
+
+        else:
+            # if there is no cursor offset provided, simply take the last max_size tokens
+            logger.debug(f"Truncating document to last {max_size} tokens")
+            tokens = doc_tokens[-max_size:]
+
+        document = ENCODER.decode(tokens)
+
+    return create_system_message(document)
+
+
 def truncate_messages(messages: List[Message]):
+    system_message_size = message_length(messages[0])
+    max_size = max_non_system_msgs_size(system_message_size)
     tail_messages = []
     running_length = 0
     for msg in reversed(messages[1:]):
         running_length += message_length(msg)
-        if running_length > 3584:
+        if running_length > max_size:
             break
         tail_messages.insert(0, msg)
+
     return [messages[0]] + tail_messages
-
-def truncate_document(document: str, cursor: int, context_size: int) -> str:
-    """
-    Truncates the document around the cursor position to a specified context size.
-
-    Args:
-        document (str): The original document text.
-        cursor (int): The position of the cursor within the document.
-        context_size (int): The size of the context to truncate around the cursor.
-
-    Returns:
-        str: The truncated document text.
-
-    """
-    start = max(0, cursor - context_size)
-    end = min(len(document), cursor + context_size)
-    if start > 0 or end < len(document):
-        logger.info(f"Truncating document from {len(document)} to {end - start}")
-    return document[start:end]
-
 
 
 class OpenAIClient(
@@ -260,7 +312,8 @@ class OpenAIClient(
         # TODO: don't hardcode
         logit_bias = {99750: -100}  # forbid repetition of the cursor sentinel
         params = ChatCompletionRequest(
-            messages=messages, stream=stream, logit_bias=logit_bias, **kwargs
+            messages=messages, stream=stream, logit_bias=logit_bias,
+            max_tokens=MAX_LEN_SAMPLED_COMPLETION, **kwargs
         )
         if self.default_model:
             params.model = self.default_model
@@ -283,23 +336,10 @@ class OpenAIClient(
     ) -> ChatResult:
         chatstream = TextStream()
 
-        if cursor_offset is not None:
-            document = truncate_document(document, cursor_offset, MAX_CONTEXT_SIZE)
+        system_message = create_system_message_truncated(document, MAX_SYSTEM_MESSAGE_SIZE, cursor_offset)
 
         messages = (
-            [
-                Message.system(
-                    f"""
-You are an expert software engineer and world-class systems architect with deep technical and design knowledge. Answer the user's questions about the code as helpfully as possible, quoting verbatim from the current file to support your claims.
-
-Current file:
-```
-{document}
-```
-
-Answer the user's question."""
-                )
-            ]
+            [system_message]
             + [Message.mk(role=msg.role, content=msg.content) for msg in messages]
             + [Message.user(content=message)]
         )
@@ -307,7 +347,7 @@ Answer the user's question."""
         num_old_messages = len(messages)
         messages = truncate_messages(messages)
         logger.info(
-            f"Truncated {num_old_messages - len(messages)} due to context length overflow."
+            f"Truncated {num_old_messages - len(messages)} non-system messages due to context length overflow."
         )
 
         stream = TextStream.from_aiter(
