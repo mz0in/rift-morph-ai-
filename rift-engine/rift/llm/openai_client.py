@@ -47,6 +47,8 @@ from tiktoken import get_encoding
 ENCODER = get_encoding("cl100k_base")
 ENCODER_LOCK = Lock()
 
+# Maximum size of the context to truncate around the cursor
+MAX_CONTEXT_SIZE = 1000
 
 @dataclass
 class OpenAIError(Exception):
@@ -69,7 +71,7 @@ def message_length(msg: Message):
         return get_num_tokens(msg.content)
 
 
-def auto_truncate(messages: List[Message]):
+def truncate_messages(messages: List[Message]):
     tail_messages = []
     running_length = 0
     for msg in reversed(messages[1:]):
@@ -78,6 +80,26 @@ def auto_truncate(messages: List[Message]):
             break
         tail_messages.insert(0, msg)
     return [messages[0]] + tail_messages
+
+def truncate_document(document: str, cursor: int, context_size: int) -> str:
+    """
+    Truncates the document around the cursor position to a specified context size.
+
+    Args:
+        document (str): The original document text.
+        cursor (int): The position of the cursor within the document.
+        context_size (int): The size of the context to truncate around the cursor.
+
+    Returns:
+        str: The truncated document text.
+
+    """
+    start = max(0, cursor - context_size)
+    end = min(len(document), cursor + context_size)
+    if start > 0 or end < len(document):
+        logger.info(f"Truncating document from {len(document)} to {end - start}")
+    return document[start:end]
+
 
 
 class OpenAIClient(
@@ -261,6 +283,9 @@ class OpenAIClient(
     ) -> ChatResult:
         chatstream = TextStream()
 
+        if cursor_offset is not None:
+            document = truncate_document(document, cursor_offset, MAX_CONTEXT_SIZE)
+
         messages = (
             [
                 Message.system(
@@ -280,7 +305,7 @@ Answer the user's question."""
         )
 
         num_old_messages = len(messages)
-        messages = auto_truncate(messages)
+        messages = truncate_messages(messages)
         logger.info(
             f"Truncated {num_old_messages - len(messages)} due to context length overflow."
         )
