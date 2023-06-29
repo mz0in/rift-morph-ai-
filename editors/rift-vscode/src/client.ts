@@ -179,16 +179,6 @@ export class MorphLanguageClient implements vscode.CodeLensProvider<HelperLens> 
 
     }
 
-    public get_config() {
-        const cfg = vscode.workspace.getConfiguration('rift')
-        const values: ModelConfig = {
-            'chatModel': cfg.get('chatModel') as any,
-            'completionsModel': cfg.get('completionsModel') as any,
-            'openai_api_key': cfg.get('openaiKey'),
-        }
-        return values
-    }
-
     public provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): HelperLens[] {
         // this returns all of the lenses for the document.
         const items: HelperLens[] = []
