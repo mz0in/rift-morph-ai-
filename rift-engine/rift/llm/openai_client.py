@@ -47,9 +47,6 @@ from tiktoken import get_encoding
 ENCODER = get_encoding("cl100k_base")
 ENCODER_LOCK = Lock()
 
-# Maximum size of the context to truncate around the cursor
-MAX_CONTEXT_SIZE = 1000
-
 @dataclass
 class OpenAIError(Exception):
     """Error raised by calling the OpenAI API"""
