@@ -75,7 +75,7 @@ def message_length(msg: Message):
 Truncation Strategy:
 
 1) system message limited to MAX_SYSTEM_MESSAGE_SIZE tokens.
-2) non-system messages limited to the number of tokens available in addition to 1 and 2
+2) non-system messages limited to the number of tokens available in addition to 1 and 3
 3) model's responses buffer limited to MAX_LEN_SAMPLED_COMPLETION tokens
 """
 
