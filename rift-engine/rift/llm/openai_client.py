@@ -410,26 +410,42 @@ class OpenAIClient(
         self, document: str, cursor_offset: int, goal=None
     ) -> InsertCodeResult:
         CURSOR_SENTINEL = "感"
-        doc_text_with_cursor = (
-            document[:cursor_offset] + CURSOR_SENTINEL + document[cursor_offset:]
-        )
         if goal is None:
             goal = f"""
             Generate code to be inserted at the cursor location, marked by {CURSOR_SENTINEL}.
             """
 
-        messages = [
-            Message.system(
-                f"""You are an expert software engineer and world-class systems architect with deep technical and design knowledge.
-                When presented with a task, first write a detailed and elegant plan to solve this task and then
-                write code to do it surrounded by triple backticks.
-                The code will be added verbatim to the cursor location, marked by {CURSOR_SENTINEL}.
-                Add comments in the code to explain your reasoning."""
-            ),
-            Message.user(
-                f"Here is the code:\n```\n{doc_text_with_cursor}\n```\n\nYour task is:\n{goal}\nInsert code at the {CURSOR_SENTINEL} which completes the task. The code will be added verbatim to the cursor location, marked by {CURSOR_SENTINEL}. Do not include code that is already there."
-            ),
-        ]
+        def create_messages(before_cursor: str, after_cursor: str) -> List[Message]:
+            doc_text_with_cursor = before_cursor + CURSOR_SENTINEL + after_cursor
+            return [
+                Message.system(
+                    f"""You are an expert software engineer and world-class systems architect with deep technical and design knowledge.
+                    When presented with a task, first write a detailed and elegant plan to solve this task and then
+                    write code to do it surrounded by triple backticks.
+                    The code will be added verbatim to the cursor location, marked by {CURSOR_SENTINEL}.
+                    Add comments in the code to explain your reasoning."""
+                ),
+                Message.user(
+                    f"Here is the code:\n```\n{doc_text_with_cursor}\n```\n\nYour task is:\n{goal}\nInsert code at the {CURSOR_SENTINEL} which completes the task. The code will be added verbatim to the cursor location, marked by {CURSOR_SENTINEL}. Do not include code that is already there."
+                ),
+            ]
+
+        before_cursor = document[:cursor_offset]
+        after_cursor = document[cursor_offset:]
+        messages_skeleton = create_messages("", "")
+        max_size_document = MAX_CONTEXT_SIZE - MAX_LEN_SAMPLED_COMPLETION - messages_size(messages_skeleton)
+
+        if get_num_tokens(document) > max_size_document:
+            tokens_before_cursor = ENCODER.encode(before_cursor)
+            tokens_after_cursor = ENCODER.encode(after_cursor)
+            (tokens_before_cursor, tokens_after_cursor) = split_lists(
+                tokens_before_cursor, tokens_after_cursor, max_size_document)
+            logger.debug(
+                f"Truncating document to ({len(tokens_before_cursor)}, {len(tokens_after_cursor)}) tokens around cursor")
+            before_cursor = ENCODER.decode(tokens_before_cursor)
+            after_cursor = ENCODER.decode(tokens_after_cursor)
+
+        messages = create_messages(before_cursor, after_cursor)
 
         stream = TextStream.from_aiter(
             asg.map(lambda c: c.text, self.chat_completions(messages, stream=True))
