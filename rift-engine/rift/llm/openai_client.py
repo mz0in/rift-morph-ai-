@@ -57,19 +57,20 @@ class OpenAIError(Exception):
     def __str__(self):
         return self.message
 
-
 @cache
 def get_num_tokens(content: str):
     return len(ENCODER.encode(content))
 
-
-def message_length(msg: Message):
+def message_size(msg: Message):
     with ENCODER_LOCK:
         length = get_num_tokens(msg.content)
         # every message follows <im_start>{role/name}\n{content}<im_end>\n
         # see https://platform.openai.com/docs/guides/gpt/managing-tokens
         length += 6 
         return length
+
+def messages_size(messages: List[Message]) -> int:
+    return sum([len(msg.content) for msg in messages])
 
 def split_sizes(size1: int, size2: int, max_size: int) -> tuple[int, int]:
     """
@@ -149,7 +150,7 @@ def create_system_message_truncated(document: str, max_size: int, cursor_offset:
     """
 
     hardcoded_message = create_system_message("")
-    hardcoded_message_size = message_length(hardcoded_message)
+    hardcoded_message_size = message_size(hardcoded_message)
     max_size = max_size - hardcoded_message_size
 
     doc_tokens = ENCODER.encode(document)
@@ -174,12 +175,12 @@ def create_system_message_truncated(document: str, max_size: int, cursor_offset:
     return create_system_message(document)
 
 def truncate_messages(messages: List[Message]):
-    system_message_size = message_length(messages[0])
+    system_message_size = message_size(messages[0])
     max_size = calc_max_non_system_msgs_size(system_message_size)
     tail_messages = []
     running_length = 0
     for msg in reversed(messages[1:]):
-        running_length += message_length(msg)
+        running_length += message_size(msg)
         if running_length > max_size:
             break
         tail_messages.insert(0, msg)
@@ -373,8 +374,8 @@ class OpenAIClient(
             [Message.mk(role=msg.role, content=msg.content) for msg in messages]
             +
             [Message.user(content=message)]
-            )                
-        non_system_messages_size = sum([message_length(msg) for msg in non_system_messages])
+            )
+        non_system_messages_size = messages_size(non_system_messages)
 
         max_system_msg_size = calc_max_system_message_size(non_system_messages_size)
         system_message = create_system_message_truncated(document, max_system_msg_size, cursor_offset)
