@@ -1,9 +1,9 @@
 # Rift
 
 At [Morph](https://morph.so), we believe that:
-- AI compute will soon run cheaply, securely, and ubiquitously on personal devices
-- the future of software will be mostly written by AI, augmented/supervised by humans
-- The future of software should belong to everyone
+- Future software will be mostly written by AI, and augmented/supervised by humans.
+- Keeping personal data safe and computations secure will become increasingly important.
+- The future of software belongs to everyone.
 
 That is why we are releasing Rift, an [open-source language server](./rift-engine) and [IDE extension](./editors/rift-vscode) that lets everyone deploy a personal AI software engineer — locally hosted, private, secure, open-source, and free.
 
