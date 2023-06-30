@@ -71,6 +71,27 @@ def message_length(msg: Message):
         length += 6 
         return length
 
+def split_sizes(size1: int, size2: int, max_size: int) -> tuple[int, int]:
+    """
+    Adjusts and returns the input sizes so that their sum does not exceed 
+    a specified maximum size, ensuring a balance between the two if necessary.
+    """
+    if size1 + size2 <= max_size:
+        return size1, size2
+    share = int(max_size / 2)
+    size1_bound = min(size1, share)
+    size2_bound = min(size2, share)
+    if size1 > share:
+        available1 = max_size - size2_bound
+        size1 = max(size1_bound, available1)
+    available2 = max_size - size1
+    size2 = max(size2_bound, available2)
+    return size1, size2
+
+def split_lists(list1: list, list2: list, max_size: int) -> tuple[list, list]:
+    size1, size2 = split_sizes(len(list1), len(list2), max_size)
+    return list1[-size1:], list2[:size2]
+
 
 """
 Contents Order in the Context:
@@ -122,10 +143,9 @@ Current file:
 Answer the user's question."""
     )
 
-
-def create_system_message_truncated(document: str, max_size:int, cursor_offset: Optional[int]) -> Message:
+def create_system_message_truncated(document: str, max_size: int, cursor_offset: Optional[int]) -> Message:
     """
-    Create system message with up to MAX_SYSTEM_MESSAGE_SIZE tokens
+    Create system message with up to max_size tokens
     """
 
     hardcoded_message = create_system_message("")
@@ -136,27 +156,22 @@ def create_system_message_truncated(document: str, max_size:int, cursor_offset: 
     if len(doc_tokens) > max_size:
         if cursor_offset:
             before_cursor = document[:cursor_offset]
+            after_cursor = document[cursor_offset:]
             tokens_before_cursor = ENCODER.encode(before_cursor)
-            start_index = max(0, len(tokens_before_cursor) - max_size // 2)
-            end_index = start_index + max_size
-
-            # if the cursor is too close to the end of the document, take more tokens from the start
-            if end_index > len(doc_tokens):
-                end_index = len(doc_tokens)
-                start_index = end_index - max_size
-
-            logger.debug(f"Truncating document to {start_index}:{end_index}")
-            tokens = doc_tokens[start_index:end_index]
-
+            tokens_after_cursor = ENCODER.encode(after_cursor)
+            (tokens_before_cursor, tokens_after_cursor) = split_lists(
+                tokens_before_cursor, tokens_after_cursor, max_size)
+            logger.debug(
+                f"Truncating document to ({len(tokens_before_cursor)}, {len(tokens_after_cursor)}) tokens around cursor")
+            tokens = tokens_before_cursor + tokens_after_cursor
         else:
             # if there is no cursor offset provided, simply take the last max_size tokens
-            logger.debug(f"Truncating document to last {max_size} tokens")
             tokens = doc_tokens[-max_size:]
+            logger.debug(f"Truncating document to last {len(tokens)} tokens")
 
         document = ENCODER.decode(tokens)
 
     return create_system_message(document)
-
 
 def truncate_messages(messages: List[Message]):
     system_message_size = message_length(messages[0])
