@@ -495,7 +495,7 @@ class RpcServer:
         # [todo] allow inheriting classes to do things here.
         await self.notify("initialized", None)
 
-    async def serve_forever(self, init_param=None):
+    async def listen_forever(self, init_param=None):
         """Runs forever. Serves your client.
 
         It will return when:

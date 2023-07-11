@@ -6,18 +6,18 @@ import logging
 import os
 import pickle as pkl
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterable, ClassVar, Dict, List, Optional, Type
-
-import rift.agents.file_diff as file_diff
-import rift.lsp.types as lsp
-import rift.server.core as core
-import rift.server.lsp as server
-import smol_dev
+from typing import Any, AsyncIterable, ClassVar, Dict, List, Optional, Type, Literal
 import tqdm.asyncio
+
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.panel import Panel
-from rift.agents.abstract import AgentRegistryResult
+
+
+import rift.util.file_diff as file_diff
+import rift.lsp.types as lsp
+import rift.server.core as core
+import rift.server.lsp as server
 from rift.lsp.types import InitializeParams
 from rift.rpc.io_transport import AsyncStreamTransport
 from rift.rpc.jsonrpc import RpcServer, rpc_method, rpc_request
@@ -30,18 +30,38 @@ import types
 
 import art
 import fire
-from rift.agents.client.cli_agent import CliAgent, ClientParams, launcher
-from rift.agents.client.util import ainput
+from rift.agents.cli_agent import Agent, ClientParams, launcher
+from rift.agents.util import ainput
 
+import smol_dev
 
 @dataclass
 class SmolAgentClientParams(ClientParams):
+    """
+    This class is used to specify the parameters for the SmolAgent.
+    It inherits from the ClientParams class.
+
+    Attributes:
+    prompt_file: Optional[str] - The path to the prompt file. If not provided, the user will be asked to input a prompt.
+    debug: bool - A flag to indicate whether the application is in debug mode. Default is False.
+    model: Literal["gpt-3.5-turbo-0613", "gpt-4-0613"] - The model to be used. Default is "gpt-3.5-turbo-0613".
+    """
     prompt_file: Optional[str] = None  # path to prompt file
     debug: bool = False
+    model: Literal["gpt-3.5-turbo-0613", "gpt-4-0613"] = "gpt-3.5-turbo-0613"
 
 
 @dataclass
-class SmolAgent(CliAgent):
+class SmolAgent(Agent):
+    """
+    This class represents the SmolAgent, which is a CLI agent that generates code based on a given prompt.
+    It inherits from the Agent class.
+
+    Attributes:
+    name: ClassVar[str] - The name of the agent. For SmolAgent, it is "smol".
+    run_params: Type[SmolAgentClientParams] - The parameters for running the agent. It uses the SmolAgentClientParams class.
+    splash: Optional[str] - The splash screen for the agent. It is a string of ASCII art.
+    """
     name: ClassVar[str] = "smol"
     run_params: Type[SmolAgentClientParams] = SmolAgentClientParams
     splash: Optional[
@@ -84,14 +104,14 @@ class SmolAgent(CliAgent):
 
             stream_string(chunk.decode("utf-8"))
 
-        plan = smol_dev.plan(prompt, streamHandler=stream_handler)
+        plan = smol_dev.plan(prompt, stream_handler=stream_handler, model=params.model)
 
         logger.info("Running with plan:")
         self.console.print(plan, emoji=True, markup=True)
 
         await ainput("\n> Press any key to continue.\n")
 
-        file_paths = smol_dev.specify_filePaths(prompt, plan)
+        file_paths = smol_dev.specify_file_paths(prompt, plan, model=params.model)
 
         logger.info("Got file paths:")
         self.console.print(json.dumps(file_paths, indent=2), markup=True)
@@ -119,7 +139,7 @@ class SmolAgent(CliAgent):
         async def generate_code_for_filepath(file_path: str, position: int) -> file_diff.FileChange:
             stream_handler = lambda chunk: pbar.update(n=len(chunk))
             code_future = asyncio.ensure_future(
-                smol_dev.generate_code(prompt, plan, file_path, streamHandler=stream_handler)
+                smol_dev.generate_code(prompt, plan, file_path, stream_handler=stream_handler, model=params.model)
             )
             with tqdm.asyncio.tqdm(position=position, unit=" chars", unit_scale=True) as pbar:
                 async with updater.lock:
