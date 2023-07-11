@@ -28,6 +28,9 @@ If you also want to develop the extension itself, you should open the extension 
 ### Rift Code Engine
 Run the Rift server by following the instructions in the [readme](./rift-engine/README.md).
 
+### Running local models
+From the Rift VSCode extension, press `Ctrl + ,` to open the settings tab, then search for `Rift` and select the models you want to use for chat and code completions from the dropdown menu.
+
 ## Contributing
 We welcome contributions to Rift at all levels of the stack, from adding support for new open-source models in the Rift Code Engine, to implementing the Rift API for your favorite programming language, to UX polish in the VSCode extension, to adding support for your [favorite](./editors/emacs) [editor](./editors/vim).
 
