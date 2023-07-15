@@ -7,6 +7,9 @@ At [Morph](https://morph.so), we believe that:
 
 That is why we are releasing Rift, an [open-source language server](./rift-engine) and [IDE extension](./editors/rift-vscode) that lets everyone deploy a personal AI software engineer — locally hosted, private, secure, open-source, and free.
 
+https://github.com/morph-labs/rift/assets/122334950/83c56f1c-1d9d-4d7f-b789-a131d09e8d1c
+
+
 ## The road ahead
 Existing code generation tooling is presently mostly code-agnostic, operating at the level of tokens in / tokens out of code LMs. The [language server protocol](https://microsoft.github.io/language-server-protocol/) (LSP) defines a standard for *language servers*, objects which index a codebase and provide structure- and runtime-aware interfaces to external development tools like IDEs.
 
@@ -27,6 +30,11 @@ If you also want to develop the extension itself, you should open the extension 
 
 ### Rift Code Engine
 Run the Rift server by following the instructions in the [readme](./rift-engine/README.md).
+
+### Rift Agents API
+Add support for third-party coding agents written in Python and use access to the Rift Code Engine to propagate edits and gather input directly from the user in the IDE. See the [README here](./rift-engine/rift/agents/README.md) for the Rift Agents API.
+
+https://github.com/morph-labs/rift/assets/122334950/a5fee985-5bba-4cad-84d6-c019e2eff887
 
 ### Running local models
 From the Rift VSCode extension, press `Ctrl + ,` to open the settings tab, then search for `Rift` and select the models you want to use for chat and code completions from the dropdown menu.

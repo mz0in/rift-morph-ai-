@@ -2,6 +2,8 @@
 
 This directory contains implementations of various agents that can be interacted with through a CLI and which produce code diffs that can be sent to the Rift Code Engine.
 
+https://github.com/morph-labs/rift/assets/122334950/a5fee985-5bba-4cad-84d6-c019e2eff887
+
 ## Files Overview
 
 - `cli_agent.py`: This file contains the base class `Agent` for all agents. It also includes the `ClientParams` dataclass which serves as the base class for special parameters for instances of `Agent`.
