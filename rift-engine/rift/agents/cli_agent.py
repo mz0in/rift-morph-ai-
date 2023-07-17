@@ -8,18 +8,15 @@ import pickle as pkl
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterable, ClassVar, Dict, List, Optional, Type
 
-import rift.util.file_diff as file_diff
 import rift.lsp.types as lsp
 import rift.server.core as core
 import rift.server.lsp as server
-
+import rift.util.file_diff as file_diff
 import smol_dev
 import tqdm.asyncio
-
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.panel import Panel
-
 from rift.lsp.types import InitializeParams
 from rift.rpc.io_transport import AsyncStreamTransport
 from rift.rpc.jsonrpc import RpcServer, rpc_method, rpc_request
@@ -32,7 +29,7 @@ import types
 
 import art
 import fire
-from rift.agents.util import stream_string, stream_string_ascii, ainput
+from rift.agents.util import ainput, stream_string, stream_string_ascii
 
 
 @dataclass
@@ -80,7 +77,6 @@ class Agent:
         This method should be overridden by subclasses to provide the specific implementation.
         """
         ...
-
 
 
 def get_dataclass_function(cls):
@@ -160,13 +156,7 @@ async def main(agent_cls, params):
                 return time.time() - self._start
 
             def report_stats(self):
-                console.print(
-                    Panel(
-                        "[AgentRunStats] report:\n" + json.dumps(
-                            self.stats, indent=2
-                        )
-                    )
-                )
+                console.print(Panel("[AgentRunStats] report:\n" + json.dumps(self.stats, indent=2)))
 
         agent_stats = AgentRunStats()
 
@@ -176,22 +166,23 @@ async def main(agent_cls, params):
             await client.server.apply_workspace_edit(
                 lsp.ApplyWorkspaceEditParams(
                     file_diff.edits_from_file_changes(file_changes, user_confirmation=True),
-                    label="rift",
+                    label=file_changes[0].description or "rift",
                 )
             )
+
         agent_stats.stats["elapsed_time"] = agent_stats.elapsed()
 
         console.print("\n")
 
         agent_stats.report_stats()
-        
+
         await ainput("\n> Press any key to restart.\n")
-        
+
     await t
 
 
-def launcher(agent_cls: Type[Agent], param_cls: Type[ClientParams]):
+def launcher(agent_cls: Type[Agent], param_cls: Type[ClientParams], loop=None):
     import fire
 
-    params = fire.Fire(get_dataclass_function(param_cls))
+    params = fire.Fire(param_cls)
     asyncio.run(main(agent_cls=agent_cls, params=params), debug=params.debug)

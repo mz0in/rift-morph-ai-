@@ -6,18 +6,16 @@ import logging
 import os
 import pickle as pkl
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterable, ClassVar, Dict, List, Optional, Type, Literal
-import tqdm.asyncio
+from typing import Any, AsyncIterable, ClassVar, Dict, List, Literal, Optional, Type
 
-from rich.console import Console
-from rich.logging import RichHandler
-from rich.panel import Panel
-
-
-import rift.util.file_diff as file_diff
 import rift.lsp.types as lsp
 import rift.server.core as core
 import rift.server.lsp as server
+import rift.util.file_diff as file_diff
+import tqdm.asyncio
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.panel import Panel
 from rift.lsp.types import InitializeParams
 from rift.rpc.io_transport import AsyncStreamTransport
 from rift.rpc.jsonrpc import RpcServer, rpc_method, rpc_request
@@ -30,10 +28,10 @@ import types
 
 import art
 import fire
+import smol_dev
 from rift.agents.cli_agent import Agent, ClientParams, launcher
 from rift.agents.util import ainput
 
-import smol_dev
 
 @dataclass
 class SmolAgentClientParams(ClientParams):
@@ -46,6 +44,7 @@ class SmolAgentClientParams(ClientParams):
     debug: bool - A flag to indicate whether the application is in debug mode. Default is False.
     model: Literal["gpt-3.5-turbo-0613", "gpt-4-0613"] - The model to be used. Default is "gpt-3.5-turbo-0613".
     """
+
     prompt_file: Optional[str] = None  # path to prompt file
     debug: bool = False
     model: Literal["gpt-3.5-turbo-0613", "gpt-4-0613"] = "gpt-3.5-turbo-0613"
@@ -62,6 +61,7 @@ class SmolAgent(Agent):
     run_params: Type[SmolAgentClientParams] - The parameters for running the agent. It uses the SmolAgentClientParams class.
     splash: Optional[str] - The splash screen for the agent. It is a string of ASCII art.
     """
+
     name: ClassVar[str] = "smol"
     run_params: Type[SmolAgentClientParams] = SmolAgentClientParams
     splash: Optional[
@@ -139,7 +139,9 @@ class SmolAgent(Agent):
         async def generate_code_for_filepath(file_path: str, position: int) -> file_diff.FileChange:
             stream_handler = lambda chunk: pbar.update(n=len(chunk))
             code_future = asyncio.ensure_future(
-                smol_dev.generate_code(prompt, plan, file_path, stream_handler=stream_handler, model=params.model)
+                smol_dev.generate_code(
+                    prompt, plan, file_path, stream_handler=stream_handler, model=params.model
+                )
             )
             with tqdm.asyncio.tqdm(position=position, unit=" chars", unit_scale=True) as pbar:
                 async with updater.lock:

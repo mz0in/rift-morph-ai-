@@ -29,7 +29,7 @@ To add your own agent, you need to create a new file in this directory and subcl
 4. At the end of your file, call `launcher` with your agent class and parameters dataclass.
 
 ## Running Your Own Agent
-Use the `launcher` method defined in `cli_agent.py`. See `smol.py` for a reference implementation at the bottom of the file. Once configured, just run this from the VSCode terminal:
+Use the `launcher` method defined in `cli_agent.py`. See `smol.py` for a reference implementation at the bottom of the file. Make sure the [Rift VSCode extension](../../../editors/rift-vscode/README.md) is installed and activated as well. Ensure that any other Rift server processes have been killed (this will no longer be necessary after we resolve [this issue](https://www.github.com/morph-labs/rift/issues/62).) Once configured, just run this from the VSCode terminal:
 
 ```python
 # defined in ./my_agent.py
@@ -40,3 +40,14 @@ python -m rift.agents.my_agent --port 7797 --debug False # other agent-specific 
 
 - Please note that agents can run third-party code, do not use Rift's model abstractions, and are presently not configurable through the Rift extension settings in VSCode. Be careful when running agents with untrusted code.
 - Currently each agent spins up its own Rift instance. Once support for [multiple clients](https://www.github.com/morph-labs/rift/issues/62) is added, multiple agents can interact with a single Rift server.
+
+## Supported agents
+- `smol-developer`:
+```python
+python -m rift.agents.smol --port 7797 --debug Faulse --prompt_file $PROMPT_FILE --model gpt-4-0613
+```
+
+- `gpt-engineer`:
+```python
+python -m rift.agents.gpt_eng --port 7797 --debug False --model gpt-4-0613
+```

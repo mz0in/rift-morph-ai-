@@ -5,6 +5,13 @@ Rift and this extension are fully [open-source](https://github.com/morph-labs/ri
 ## About
 The future of AI code assistants is open-source, private, secure, and on-device. Rift understands, explains, and writes code with language models that run entirely on your device using the open source [Rift Code Engine](https://github.com/morph-labs/rift/tree/main/rift-engine).
 
+## Installation
+Install the VSCode extension from the VSCode Marketplace or by building and installing from the VSIX bundle produced by the following steps:
+
+- Increment the semver number (e.g. 0.0.8 to 0.0.9) in the `package.json`
+- run `vsce package`
+- Install from the VSIX by searching "VSIX" from the VSCode command palette.
+
 ## Usage 
 1. Ensure the [Rift Code Engine](https://github.com/morph-labs/rift/tree/main/rift-engine) is installed and running on port 7797:
 

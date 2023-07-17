@@ -23,17 +23,18 @@ class FileChange:
     old_content: str
     new_content: str
     description: Optional[str] = None
+    annotation_label: Optional[str] = None
     is_new_file: bool = False
 
 
-def get_file_change(path: str, new_content: str) -> FileChange:
+def get_file_change(path: str, new_content: str, annotation_label: Optional[str] = None) -> FileChange:
     uri = TextDocumentIdentifier(uri="file://" + path, version=0)
     if os.path.isfile(path):
         with open(path, "r") as f:
             old_content = f.read()
-            return FileChange(uri=uri, old_content=old_content, new_content=new_content)
+            return FileChange(uri=uri, old_content=old_content, new_content=new_content, annotation_label=annotation_label)
     else:
-        return FileChange(uri=uri, old_content="", new_content=new_content, is_new_file=True)
+        return FileChange(uri=uri, old_content="", new_content=new_content, is_new_file=True, annotation_label=annotation_label)
 
 
 def edits_from_file_change(file_change: FileChange, user_confirmation: bool = False) -> WorkspaceEdit:
@@ -43,6 +44,7 @@ def edits_from_file_change(file_change: FileChange, user_confirmation: bool = Fa
     line = 0  # current line number
     char = 0  # current character position within the line
     edits = []  # list of TextEdit objects
+    annotation_label = file_change.annotation_label or "rift"
 
     for op, text in diff:
         # count the number of lines in `text` and the number of characters in the last line
@@ -57,11 +59,11 @@ def edits_from_file_change(file_change: FileChange, user_confirmation: bool = Fa
 
         if op == -1:
             # text was deleted
-            edits.append(TextEdit(Range.mk(line, char, end_line, end_char), "", annotationId="rift"))
+            edits.append(TextEdit(Range.mk(line, char, end_line, end_char), "", annotationId=annotation_label))
         elif op == 1:
             # text was added
             edits.append(
-                TextEdit(Range.mk(line, char, line, char), text, annotationId="rift")
+                TextEdit(Range.mk(line, char, line, char), text, annotationId=annotation_label)
             )  # new text starts at the current position
 
         # update position
@@ -72,9 +74,9 @@ def edits_from_file_change(file_change: FileChange, user_confirmation: bool = Fa
 
     changeAnnotations: dict[lsp.ChangeAnnotationIdentifier, lsp.ChangeAnnotation] = dict()
     if file_change.is_new_file:
-        documentChanges.append(CreateFile(kind="create", uri=file_change.uri.uri, annotationId="rift"))
+        documentChanges.append(CreateFile(kind="create", uri=file_change.uri.uri, annotationId=annotation_label))
     documentChanges.append(TextDocumentEdit(textDocument=file_change.uri, edits=edits))
-    changeAnnotations["rift"] = lsp.ChangeAnnotation(label="rift", needsConfirmation=user_confirmation, description=None)
+    changeAnnotations[annotation_label] = lsp.ChangeAnnotation(label=annotation_label, needsConfirmation=user_confirmation, description=None)
     return WorkspaceEdit(documentChanges=documentChanges, changeAnnotations=changeAnnotations)
 
 
