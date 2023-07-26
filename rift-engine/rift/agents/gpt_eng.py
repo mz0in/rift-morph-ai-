@@ -8,17 +8,12 @@ try:
     import gpt_engineer.chat_to_files
     import gpt_engineer.db
 except ImportError:
-    raise Exception("`gpt_engineer` not found. Try `pip install gpt-engineer`")
+    raise Exception(
+        "`gpt_engineer` not found. Try `pip install -e rift-engine[gpt-engineer]` from the Rift root directory."
+    )
 
 UPDATES_QUEUE = asyncio.Queue()
 SEEN = set()
-
-from gpt_engineer.ai import AI, fallback_model
-from gpt_engineer.collect import collect_learnings
-from gpt_engineer.db import DB, DBs, archive
-from gpt_engineer.learning import collect_consent
-from gpt_engineer.steps import STEPS
-from gpt_engineer.steps import Config as StepsConfig
 
 import json
 import logging
@@ -28,10 +23,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from queue import Queue
 
+import typer
+from gpt_engineer.ai import AI, fallback_model
+from gpt_engineer.collect import collect_learnings
+from gpt_engineer.db import DB, DBs, archive
+from gpt_engineer.learning import collect_consent
+from gpt_engineer.steps import STEPS
+from gpt_engineer.steps import Config as StepsConfig
+
 import rift.agents.cli_agent as agent
 import rift.lsp.types as lsp
 import rift.util.file_diff as file_diff
-import typer
 
 
 async def _main(
@@ -109,6 +111,7 @@ class GPTEngineerAgent(agent.Agent):
     """
     Specify what you want it to build, the AI asks for clarification, and then builds it.
     """
+
     name: str = "gpt-engineer"
     run_params: typing.Type[agent.ClientParams] = GPTEngineerAgentParams
     splash: typing.Optional[

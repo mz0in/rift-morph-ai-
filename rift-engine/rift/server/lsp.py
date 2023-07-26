@@ -1,19 +1,17 @@
 import asyncio
-from dataclasses import dataclass, field
 import logging
-from typing import ClassVar, Optional, List
-from typing import Literal
-from rift.lsp import LspServer as BaseLspServer, rpc_method
-from rift.rpc import RpcServerStatus
+from dataclasses import dataclass, field
+from typing import ClassVar, List, Literal, Optional
+
 import rift.lsp.types as lsp
-from rift.llm.abstract import (
-    AbstractCodeCompletionProvider,
-    AbstractChatCompletionProvider,
-)
+from rift.llm.abstract import AbstractChatCompletionProvider, AbstractCodeCompletionProvider
 from rift.llm.create import ModelConfig
+from rift.llm.openai_types import Message
+from rift.lsp import LspServer as BaseLspServer
+from rift.lsp import rpc_method
+from rift.rpc import RpcServerStatus
 from rift.server.helper import *
 from rift.server.selection import RangeSet
-from rift.llm.openai_types import Message
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +41,7 @@ class LspLogHandler(logging.Handler):
     def __init__(self, server: "LspServer"):
         super().__init__()
         self.server = server
-        self.tasks : set[asyncio.Task] = set()
+        self.tasks: set[asyncio.Task] = set()
 
     def emit(self, record: logging.LogRecord) -> None:
         if self.server.status != RpcServerStatus.running:
@@ -151,10 +149,7 @@ class ChatHelper:
         pos = self.cursor
         offset = None if pos is None else self.document.position_to_offset(pos)
 
-
-        stream = await self.model.run_chat(
-            doc_text, self.cfg.messages, self.cfg.message, offset
-        )
+        stream = await self.model.run_chat(doc_text, self.cfg.messages, self.cfg.message, offset)
 
         async for delta in stream.text:
             response += delta
@@ -208,9 +203,7 @@ class LspServer(BaseLspServer):
         self.logger.addHandler(LspLogHandler(self))
 
     @rpc_method("workspace/didChangeConfiguration")
-    async def on_workspace_did_change_configuration(
-        self, params: lsp.DidChangeConfigurationParams
-    ):
+    async def on_workspace_did_change_configuration(self, params: lsp.DidChangeConfigurationParams):
         logger.info("workspace/didChangeConfiguration")
         await self.get_config()
 
@@ -230,16 +223,12 @@ class LspServer(BaseLspServer):
             except (asyncio.CancelledError, TypeError):
                 pass
             if self._loading_idx != idx:
-                logger.debug(
-                    f"loading task {idx} was cancelled, but a new one was started"
-                )
+                logger.debug(f"loading task {idx} was cancelled, but a new one was started")
                 return
             # only the most recent request will make it here.
         settings = await self.get_workspace_configuration(section="rift")
         if not isinstance(settings, list) or len(settings) != 1:
-            raise RuntimeError(
-                f"Invalid settings:\n{settings}\nExpected a list of dictionaries."
-            )
+            raise RuntimeError(f"Invalid settings:\n{settings}\nExpected a list of dictionaries.")
         settings = settings[0]
         config = ModelConfig.parse_obj(settings)
         if self.chat_model and self.completions_model and self.model_config == config:
@@ -323,9 +312,7 @@ class LspServer(BaseLspServer):
             helper = Helper(params, model=model, server=self)
         except LookupError:
             # [hack] wait a bit for textDocumentChanged notification to come in
-            logger.debug(
-                "request too early: waiting for textDocumentChanged notification"
-            )
+            logger.debug("request too early: waiting for textDocumentChanged notification")
             await asyncio.sleep(3)
             helper = Helper(params, model=model, server=self)
         logger.debug(f"starting helper {helper.id}")

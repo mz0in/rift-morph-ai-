@@ -4,12 +4,8 @@ This file is adapted from  https://github.com/EdAyers/sss
 """
 import asyncio
 import sys
-from .transport import (
-    Transport,
-    TransportClosedOK,
-    TransportClosedError,
-    TransportError,
-)
+
+from .transport import Transport, TransportClosedError, TransportClosedOK, TransportError
 
 
 async def create_pipe_streams(in_pipe, out_pipe):

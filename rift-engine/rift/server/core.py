@@ -55,6 +55,7 @@ ModelType = Literal["openai", "hf", "gpt4all"]
 
 class CodeCapabilitiesServer:
     server: Optional[LspServer] = None
+
     def __init__(
         self,
         lsp_host: LspHost = "127.0.0.1",
@@ -117,7 +118,6 @@ class CodeCapabilitiesServer:
         )
         return lsp_task
 
-
     async def run_forever(self):
         """Runs the language server.
 
@@ -127,7 +127,7 @@ class CodeCapabilitiesServer:
         loop = asyncio.get_event_loop()
         lsp_task = await self._run_forever_fut()
         await lsp_task
-        logger.debug(f"exiting {type(self).__name__}.listen_forever")        
+        logger.debug(f"exiting {type(self).__name__}.listen_forever")
 
 
 def create_metaserver(

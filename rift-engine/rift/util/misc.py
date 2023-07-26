@@ -1,11 +1,6 @@
-import contextvars
 import contextlib
-from typing import (
-    Callable,
-    TypeVar,
-)
 import contextvars
-import contextlib
+from typing import Callable, TypeVar
 
 T = TypeVar("T")
 

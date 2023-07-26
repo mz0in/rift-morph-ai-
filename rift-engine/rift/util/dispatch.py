@@ -3,20 +3,9 @@ Author: E.W.Ayers <contact@edayers.com>
 This file is adapted from  https://github.com/EdAyers/sss
 """
 from abc import get_cache_token
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    Optional,
-    Type,
-    TypeVar,
-    Union,
-    get_origin,
-    NewType,
-)
-from functools import singledispatch, update_wrapper
 from functools import _find_impl  # type: ignore
+from functools import singledispatch, update_wrapper
+from typing import Any, Callable, Dict, Generic, NewType, Optional, Type, TypeVar, Union, get_origin
 from weakref import WeakKeyDictionary
 
 F = TypeVar("F")

@@ -1,12 +1,10 @@
 import functools
 import weakref
-from pydantic import BaseModel, SecretStr
 from typing import Literal, Optional
 
-from rift.llm.abstract import (
-    AbstractCodeCompletionProvider,
-    AbstractChatCompletionProvider,
-)
+from pydantic import BaseModel, SecretStr
+
+from rift.llm.abstract import AbstractChatCompletionProvider, AbstractCodeCompletionProvider
 
 
 class ModelConfig(BaseModel):
@@ -88,7 +86,7 @@ def create_client_core(
         return OpenAIClient.parse_obj(kwargs)
 
     elif type == "gpt4all":
-        from rift.llm.gpt4all_model import Gpt4AllSettings, Gpt4AllModel
+        from rift.llm.gpt4all_model import Gpt4AllModel, Gpt4AllSettings
 
         kwargs = {}
         if name:

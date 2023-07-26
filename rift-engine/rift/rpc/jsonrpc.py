@@ -2,29 +2,21 @@
 Author: E.W.Ayers <contact@edayers.com>
 This file is adapted from  https://github.com/EdAyers/sss
 """
-from asyncio import Future, Task
 import asyncio
-from functools import singledispatch, partial
-from dataclasses import MISSING, asdict, dataclass, field, is_dataclass
-from enum import Enum
+import inspect
+import json
 import logging
 import sys
-from typing import (
-    Any,
-    Optional,
-    Union,
-)
-import inspect
 import warnings
+from asyncio import Future, Task
+from dataclasses import MISSING, asdict, dataclass, field, is_dataclass
+from enum import Enum
+from functools import partial, singledispatch
+from typing import Any, Optional, Union
 
 from rift.util.ofdict import MyJsonEncoder, ofdict, todict, todict_dataclass
-import json
-from .transport import (
-    Transport,
-    TransportClosedError,
-    TransportClosedOK,
-    TransportError,
-)
+
+from .transport import Transport, TransportClosedError, TransportClosedOK, TransportError
 
 logger = logging.getLogger(__name__)
 
@@ -228,9 +220,7 @@ class Dispatcher:
         def core(fn):
             funcname = name or fn.__name__
             if funcname in self.methods:
-                warnings.warn(
-                    f"method with name {funcname} already registered, overwriting"
-                )
+                warnings.warn(f"method with name {funcname} already registered, overwriting")
             self.methods[funcname] = fn
             return fn
 
@@ -431,9 +421,7 @@ class RpcServer:
             rpc_method = getattr(method, "rpc_method", None)
             if rpc_method is not None:
                 # [todo] assert that the signature is correct
-                logger.debug(
-                    f"registering RPC method '{rpc_method}' to {method.__qualname__}"
-                )
+                logger.debug(f"registering RPC method '{rpc_method}' to {method.__qualname__}")
                 self.dispatcher.register(rpc_method)(method)
 
     def __str__(self):
@@ -519,9 +507,7 @@ class RpcServer:
                     f"can't start server while server is in {self.status.name} state"
                 )
             if init_param is None:
-                raise ValueError(
-                    f"init_param must be provided in {self.init_mode.name} mode"
-                )
+                raise ValueError(f"init_param must be provided in {self.init_mode.name} mode")
             task = asyncio.create_task(self._send_init(init_param))
             self.notification_tasks.add(task)
             task.add_done_callback(self.notification_tasks.discard)
@@ -592,9 +578,7 @@ class RpcServer:
                 return
             fut = self.my_requests.pop(res.id)
             if fut.done():
-                logger.error(
-                    f"received response for already completed request: {res} {fut}"
-                )
+                logger.error(f"received response for already completed request: {res} {fut}")
             else:
                 if res.error is not None:
                     fut.set_exception(res.error)
@@ -636,9 +620,7 @@ class RpcServer:
                 await self._send(
                     Response(
                         id=req.id,
-                        error=ResponseError(
-                            code=ErrorCode.request_cancelled, message=str(e)
-                        ),
+                        error=ResponseError(code=ErrorCode.request_cancelled, message=str(e)),
                     )
                 )
         except ResponseError as e:
@@ -675,9 +657,7 @@ class RpcServer:
                         f"please request method {INIT_METHOD} before requesting anything else"
                     )
             elif self.init_mode == InitializationMode.SendInit:
-                raise server_not_initialized(
-                    f"please wait for me to send a {INIT_METHOD} request"
-                )
+                raise server_not_initialized(f"please wait for me to send a {INIT_METHOD} request")
             else:
                 raise internal_error("invalid server state")
         if self.status == RpcServerStatus.shutdown:
@@ -707,9 +687,7 @@ class RpcServer:
         try:
             params = ofdict(T, req.params)
         except TypeError as e:
-            message = (
-                f"{req.method} {type(e).__name__} failed to decode params to {T}: {e}"
-            )
+            message = f"{req.method} {type(e).__name__} failed to decode params to {T}: {e}"
             logger.exception(message)
             raise invalid_params(message)
         result = await self.dispatcher.dispatch(req.method, params)

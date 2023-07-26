@@ -1,31 +1,29 @@
 import asyncio
 import ctypes
 import logging
-from pathlib import Path
 import threading
-from typing import Optional, List
+from functools import cache
+from pathlib import Path
+from typing import List, Optional
 
-from pydantic import BaseSettings, Field
-from rift.llm.abstract import (
-    AbstractCodeCompletionProvider,
-    InsertCodeResult,
-    AbstractChatCompletionProvider,
-    ChatResult,
-)
-from rift.llm.openai_types import Message
+from gpt4all import GPT4All
 from gpt4all.pyllmodel import (
     LLModel,
     LLModelPromptContext,
-    llmodel,
     PromptCallback,
-    ResponseCallback,
     RecalculateCallback,
+    ResponseCallback,
+    llmodel,
 )
+from pydantic import BaseSettings, Field
 
-from gpt4all import GPT4All
-
-from functools import cache
-
+from rift.llm.abstract import (
+    AbstractChatCompletionProvider,
+    AbstractCodeCompletionProvider,
+    ChatResult,
+    InsertCodeResult,
+)
+from rift.llm.openai_types import Message
 from rift.util.TextStream import TextStream
 
 logger = logging.getLogger(__name__)
@@ -229,9 +227,7 @@ Answer the user's question."""
         num_old_messages = len(messages)
         messages = auto_truncate(messages)
 
-        logger.info(
-            f"Truncated {num_old_messages - len(messages)} due to context length overflow."
-        )
+        logger.info(f"Truncated {num_old_messages - len(messages)} due to context length overflow.")
 
         def build_prompt(msgs: List[Message]) -> str:
             result = """### Instruction:

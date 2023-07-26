@@ -3,26 +3,19 @@ Author: E.W.Ayers <contact@edayers.com>
 This file is adapted from  https://github.com/EdAyers/sss
 """
 import asyncio
+import logging
 from collections import defaultdict
 from dataclasses import dataclass
-import logging
-from typing import (
-    Any,
-    AsyncGenerator,
-    AsyncIterator,
-    Callable,
-    Generic,
-    Optional,
-    Union,
-)
+from typing import Any, AsyncGenerator, AsyncIterator, Callable, Generic, Optional, Union
 from uuid import uuid4
 
 try:
     from typing import TypeAlias, TypeVar
 except:
     from typing_extensions import TypeAlias, TypeVar
-from .transport import Transport
+
 from .jsonrpc import InitializationMode, RpcServer, rpc_method
+from .transport import Transport
 
 ProgressToken: TypeAlias = Union[str, int]
 
@@ -58,9 +51,7 @@ class RequestFutureWithProgress(Generic[Q, R]):
         self.token = token
         self._q = asyncio.Queue()
         self._r = result_fut
-        self._r.add_done_callback(
-            lambda _: self._q.put_nowait(StopAsyncIteration("request done"))
-        )
+        self._r.add_done_callback(lambda _: self._q.put_nowait(StopAsyncIteration("request done")))
 
     def _put(self, progress_item: Q):
         if self._r.done():

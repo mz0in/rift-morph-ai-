@@ -1,14 +1,16 @@
-from typing import List
 import asyncio
+import json
+import logging
 from contextvars import ContextVar
 from dataclasses import dataclass
-from functools import cached_property, cache
-import json
+from functools import cache, cached_property
+from threading import Lock
 from typing import (
     Any,
     AsyncGenerator,
     Awaitable,
     Coroutine,
+    List,
     Literal,
     Optional,
     Type,
@@ -16,25 +18,24 @@ from typing import (
     overload,
 )
 from urllib.parse import parse_qs, urlparse
+
 import aiohttp
 from pydantic import BaseModel, BaseSettings, SecretStr
-from rift.llm.abstract import (
-    AbstractCodeCompletionProvider,
-    AbstractChatCompletionProvider,
-    InsertCodeResult,
-    ChatResult,
-)
 
-from rift.util.TextStream import TextStream
+import rift.util.asyncgen as asg
+from rift.llm.abstract import (
+    AbstractChatCompletionProvider,
+    AbstractCodeCompletionProvider,
+    ChatResult,
+    InsertCodeResult,
+)
 from rift.llm.openai_types import (
     ChatCompletionChunk,
     ChatCompletionRequest,
     ChatCompletionResponse,
     Message,
 )
-import rift.util.asyncgen as asg
-import logging
-from threading import Lock
+from rift.util.TextStream import TextStream
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ from tiktoken import get_encoding
 ENCODER = get_encoding("cl100k_base")
 ENCODER_LOCK = Lock()
 
+
 @dataclass
 class OpenAIError(Exception):
     """Error raised by calling the OpenAI API"""
@@ -56,24 +58,28 @@ class OpenAIError(Exception):
     def __str__(self):
         return self.message
 
+
 @cache
 def get_num_tokens(content: str):
     return len(ENCODER.encode(content))
+
 
 def message_size(msg: Message):
     with ENCODER_LOCK:
         length = get_num_tokens(msg.content)
         # every message follows <im_start>{role/name}\n{content}<im_end>\n
         # see https://platform.openai.com/docs/guides/gpt/managing-tokens
-        length += 6 
+        length += 6
         return length
+
 
 def messages_size(messages: List[Message]) -> int:
     return sum([len(msg.content) for msg in messages])
 
+
 def split_sizes(size1: int, size2: int, max_size: int) -> tuple[int, int]:
     """
-    Adjusts and returns the input sizes so that their sum does not exceed 
+    Adjusts and returns the input sizes so that their sum does not exceed
     a specified maximum size, ensuring a balance between the two if necessary.
     """
     if size1 + size2 <= max_size:
@@ -87,6 +93,7 @@ def split_sizes(size1: int, size2: int, max_size: int) -> tuple[int, int]:
     available2 = max_size - size1
     size2 = max(size2_bound, available2)
     return size1, size2
+
 
 def split_lists(list1: list, list2: list, max_size: int) -> tuple[list, list]:
     size1, size2 = split_sizes(len(list1), len(list2), max_size)
@@ -111,28 +118,32 @@ The system message size can dynamically increase beyond MAX_SYSTEM_MESSAGE_SIZE 
 
 MAX_CONTEXT_SIZE = 4096  # Total token limit for GPT models
 MAX_LEN_SAMPLED_COMPLETION = 512  # Reserved tokens for model's responses
-MAX_SYSTEM_MESSAGE_SIZE = 1024 # Token limit for system message
+MAX_SYSTEM_MESSAGE_SIZE = 1024  # Token limit for system message
+
 
 def calc_max_non_system_msgs_size(system_message_size: int) -> int:
-    """ Maximum size of the non-system messages """
+    """Maximum size of the non-system messages"""
     return MAX_CONTEXT_SIZE - MAX_LEN_SAMPLED_COMPLETION - system_message_size
 
-def calc_max_system_message_size(non_system_messages_size: int) -> int:
-    """ Maximum size of the system message """
 
-    # Calculate the maximum size for the system message. It's either the maximum defined limit 
+def calc_max_system_message_size(non_system_messages_size: int) -> int:
+    """Maximum size of the system message"""
+
+    # Calculate the maximum size for the system message. It's either the maximum defined limit
     # or the remaining tokens in the context size after accounting for model responses and non-system messages,
     # whichever is larger. This ensures that the system message can take advantage of spare space, if available.
     return max(
-            MAX_SYSTEM_MESSAGE_SIZE,
-            MAX_CONTEXT_SIZE - MAX_LEN_SAMPLED_COMPLETION - non_system_messages_size)
+        MAX_SYSTEM_MESSAGE_SIZE,
+        MAX_CONTEXT_SIZE - MAX_LEN_SAMPLED_COMPLETION - non_system_messages_size,
+    )
+
 
 def create_system_message(document: str) -> Message:
     """
     Create system message wiht up to MAX_SYSTEM_MESSAGE_SIZE tokens
     """
     return Message.system(
-                    f"""
+        f"""
 You are an expert software engineer and world-class systems architect with deep technical and design knowledge. Answer the user's questions about the code as helpfully as possible, quoting verbatim from the current file to support your claims.
 
 Current file:
@@ -143,7 +154,10 @@ Current file:
 Answer the user's question."""
     )
 
-def create_system_message_truncated(document: str, max_size: int, cursor_offset: Optional[int]) -> Message:
+
+def create_system_message_truncated(
+    document: str, max_size: int, cursor_offset: Optional[int]
+) -> Message:
     """
     Create system message with up to max_size tokens
     """
@@ -160,9 +174,11 @@ def create_system_message_truncated(document: str, max_size: int, cursor_offset:
             tokens_before_cursor = ENCODER.encode(before_cursor)
             tokens_after_cursor = ENCODER.encode(after_cursor)
             (tokens_before_cursor, tokens_after_cursor) = split_lists(
-                tokens_before_cursor, tokens_after_cursor, max_size)
+                tokens_before_cursor, tokens_after_cursor, max_size
+            )
             logger.debug(
-                f"Truncating document to ({len(tokens_before_cursor)}, {len(tokens_after_cursor)}) tokens around cursor")
+                f"Truncating document to ({len(tokens_before_cursor)}, {len(tokens_after_cursor)}) tokens around cursor"
+            )
             tokens = tokens_before_cursor + tokens_after_cursor
         else:
             # if there is no cursor offset provided, simply take the last max_size tokens
@@ -172,6 +188,7 @@ def create_system_message_truncated(document: str, max_size: int, cursor_offset:
         document = ENCODER.decode(tokens)
 
     return create_system_message(document)
+
 
 def truncate_messages(messages: List[Message]):
     system_message_size = message_size(messages[0])
@@ -187,9 +204,7 @@ def truncate_messages(messages: List[Message]):
     return [messages[0]] + tail_messages
 
 
-class OpenAIClient(
-    BaseSettings, AbstractCodeCompletionProvider, AbstractChatCompletionProvider
-):
+class OpenAIClient(BaseSettings, AbstractCodeCompletionProvider, AbstractChatCompletionProvider):
     api_key: SecretStr
     api_url: str = "https://api.openai.com/v1"
     default_model: Optional[str] = None
@@ -206,11 +221,7 @@ class OpenAIClient(
 
     @property
     def base_url(self) -> str:
-        return (
-            urlparse(self.api_url)
-            ._replace(path="", query="", params="", fragment="")
-            .geturl()
-        )
+        return urlparse(self.api_url)._replace(path="", query="", params="", fragment="").geturl()
 
     @property
     def url_path(self) -> str:
@@ -242,7 +253,9 @@ class OpenAIClient(
         message = f"{status_code} error from {self.base_url}: {message}"
         logging.error(message)
         if status_code == 404 and self.default_model == "gpt-4":
-            logging.info("Please double check you have access to GPT-4 API: https://openai.com/waitlist/gpt-4-api")
+            logging.info(
+                "Please double check you have access to GPT-4 API: https://openai.com/waitlist/gpt-4-api"
+            )
         raise OpenAIError(message=message, status=status_code)
 
     async def get_error_message(self, resp):
@@ -278,9 +291,7 @@ class OpenAIClient(
         stream_data_type: Type[O],
     ) -> AsyncGenerator[O, None]:
         if not getattr(params, "stream", True):
-            raise ValueError(
-                "To not use streaming please use the _post_endpoint method"
-            )
+            raise ValueError("To not use streaming please use the _post_endpoint method")
         if not isinstance(params, input_type):
             raise TypeError(f"expected {input_type}, got {type(params)}")
         payload = params.dict(exclude_none=True)
@@ -339,16 +350,17 @@ class OpenAIClient(
     ) -> Coroutine[Any, Any, ChatCompletionResponse]:
         ...
 
-    def chat_completions(
-        self, messages: List[Message], *, stream: bool = False, **kwargs
-    ) -> Any:
+    def chat_completions(self, messages: List[Message], *, stream: bool = False, **kwargs) -> Any:
         endpoint = "/chat/completions"
         input_type = ChatCompletionRequest
         # TODO: don't hardcode
         logit_bias = {99750: -100}  # forbid repetition of the cursor sentinel
         params = ChatCompletionRequest(
-            messages=messages, stream=stream, logit_bias=logit_bias,
-            max_tokens=MAX_LEN_SAMPLED_COMPLETION, **kwargs
+            messages=messages,
+            stream=stream,
+            logit_bias=logit_bias,
+            max_tokens=MAX_LEN_SAMPLED_COMPLETION,
+            **kwargs,
         )
         if self.default_model:
             params.model = self.default_model
@@ -367,19 +379,23 @@ class OpenAIClient(
             )
 
     async def run_chat(
-        self, document: str, messages: List[Message], message: str, cursor_offset: Optional[int] = None
+        self,
+        document: str,
+        messages: List[Message],
+        message: str,
+        cursor_offset: Optional[int] = None,
     ) -> ChatResult:
         chatstream = TextStream()
 
-        non_system_messages = (
-            [Message.mk(role=msg.role, content=msg.content) for msg in messages]
-            +
-            [Message.user(content=message)]
-            )
+        non_system_messages = [
+            Message.mk(role=msg.role, content=msg.content) for msg in messages
+        ] + [Message.user(content=message)]
         non_system_messages_size = messages_size(non_system_messages)
 
         max_system_msg_size = calc_max_system_message_size(non_system_messages_size)
-        system_message = create_system_message_truncated(document, max_system_msg_size, cursor_offset)
+        system_message = create_system_message_truncated(
+            document, max_system_msg_size, cursor_offset
+        )
 
         messages = [system_message] + non_system_messages
 
@@ -407,9 +423,7 @@ class OpenAIClient(
         logger.info("Created chat stream, awaiting results.")
         return ChatResult(text=chatstream)
 
-    async def insert_code(
-        self, document: str, cursor_offset: int, goal=None
-    ) -> InsertCodeResult:
+    async def insert_code(self, document: str, cursor_offset: int, goal=None) -> InsertCodeResult:
         CURSOR_SENTINEL = "感"
         if goal is None:
             goal = f"""
@@ -434,15 +448,19 @@ class OpenAIClient(
         before_cursor = document[:cursor_offset]
         after_cursor = document[cursor_offset:]
         messages_skeleton = create_messages("", "")
-        max_size_document = MAX_CONTEXT_SIZE - MAX_LEN_SAMPLED_COMPLETION - messages_size(messages_skeleton)
+        max_size_document = (
+            MAX_CONTEXT_SIZE - MAX_LEN_SAMPLED_COMPLETION - messages_size(messages_skeleton)
+        )
 
         if get_num_tokens(document) > max_size_document:
             tokens_before_cursor = ENCODER.encode(before_cursor)
             tokens_after_cursor = ENCODER.encode(after_cursor)
             (tokens_before_cursor, tokens_after_cursor) = split_lists(
-                tokens_before_cursor, tokens_after_cursor, max_size_document)
+                tokens_before_cursor, tokens_after_cursor, max_size_document
+            )
             logger.debug(
-                f"Truncating document to ({len(tokens_before_cursor)}, {len(tokens_after_cursor)}) tokens around cursor")
+                f"Truncating document to ({len(tokens_before_cursor)}, {len(tokens_after_cursor)}) tokens around cursor"
+            )
             before_cursor = ENCODER.decode(tokens_before_cursor)
             after_cursor = ENCODER.decode(tokens_after_cursor)
 
@@ -491,9 +509,7 @@ async def _main():
         Message.assistant("i won't unless if you ask nicely"),
     ]
 
-    stream = await client.run_chat(
-        "fee fi fo fum", messages=messages, message="pretty please?"
-    )
+    stream = await client.run_chat("fee fi fo fum", messages=messages, message="pretty please?")
     async for delta in stream.text:
         print(delta)
     # print("\n\n")

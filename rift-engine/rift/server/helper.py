@@ -1,13 +1,13 @@
 import asyncio
+import importlib.util
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
-import logging
-from typing import Any, ClassVar, Optional, List
-from typing import Literal
-from rift.lsp.document import setdoc
+from typing import Any, ClassVar, List, Literal, Optional
+
 import rift.lsp.types as lsp
-import importlib.util
 from rift.llm.abstract import AbstractCodeCompletionProvider, InsertCodeResult
+from rift.lsp.document import setdoc
 from rift.server.selection import RangeSet
 
 logger = logging.getLogger(__name__)
@@ -54,9 +54,7 @@ class Helper:
     def uri(self):
         return self.cfg.textDocument.uri
 
-    def __init__(
-        self, cfg: RunHelperParams, model: AbstractCodeCompletionProvider, server: Any
-    ):
+    def __init__(self, cfg: RunHelperParams, model: AbstractCodeCompletionProvider, server: Any):
         Helper.count += 1
         self.id = Helper.count
         self.cfg = cfg
@@ -162,9 +160,7 @@ class Helper:
         offset = self.document.position_to_offset(pos)
         doc_text = self.document.text
 
-        stream: InsertCodeResult = await model.insert_code(
-            doc_text, offset, goal=self.cfg.task
-        )
+        stream: InsertCodeResult = await model.insert_code(doc_text, offset, goal=self.cfg.task)
         logger.debug("starting streaming code")
         all_deltas = []
         async for delta in stream.code:
@@ -190,9 +186,7 @@ class Helper:
                     break
                 except asyncio.TimeoutError:
                     # [todo] this happens when an edit occured that clobbers this, try redoing.
-                    logger.error(
-                        f"timeout waiting for change '{delta}', retry the edit"
-                    )
+                    logger.error(f"timeout waiting for change '{delta}', retry the edit")
                 finally:
                     del self.change_futures[delta]
             with setdoc(self.document):
@@ -248,9 +242,7 @@ class Helper:
                             # the change is occuring on lines strictly above us
                             # so we can adjust the number of lines
                             lines_to_add = (
-                                c.text.count("\n")
-                                + c.range.start.line
-                                - c.range.end.line
+                                c.text.count("\n") + c.range.start.line - c.range.end.line
                             )
                             self.cursor += (lines_to_add, 0)
                         else:

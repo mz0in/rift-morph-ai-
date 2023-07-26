@@ -1,6 +1,6 @@
 import asyncio
-from typing import Any, AsyncIterable, Callable, Optional
 import logging
+from typing import Any, AsyncIterable, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +107,7 @@ class TextStream:
         if len(self._buffer) < n:
             assert self._eof
             incomplete: Any = self.pop_all()
-            raise EOFError(
-                f"expecting {n - len(incomplete)} more characters but got EOF"
-            )
+            raise EOFError(f"expecting {n - len(incomplete)} more characters but got EOF")
         return self.pop(n)
 
     def __aiter__(self):
@@ -129,6 +127,7 @@ class TextStream:
                         self._on_cancel()
                     raise
         return self.pop_all()
+
     @classmethod
     def from_aiter(cls, x: AsyncIterable[str], loop=None):
         self = cls(loop=loop)

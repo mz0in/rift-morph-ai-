@@ -8,14 +8,15 @@ import pickle as pkl
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterable, ClassVar, Dict, List, Literal, Optional, Type
 
-import rift.lsp.types as lsp
-import rift.server.core as core
-import rift.server.lsp as server
-import rift.util.file_diff as file_diff
 import tqdm.asyncio
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.panel import Panel
+
+import rift.lsp.types as lsp
+import rift.server.core as core
+import rift.server.lsp as server
+import rift.util.file_diff as file_diff
 from rift.lsp.types import InitializeParams
 from rift.rpc.io_transport import AsyncStreamTransport
 from rift.rpc.jsonrpc import RpcServer, rpc_method, rpc_request
@@ -28,7 +29,13 @@ import types
 
 import art
 import fire
-import smol_dev
+
+try:
+    import smol_dev
+except ImportError:
+    raise Exception(
+        "`smol_dev` not found. Try `pip install -e rift-engine[smol-dev]` from the Rift root directory."
+    )
 from rift.agents.cli_agent import Agent, ClientParams, launcher
 from rift.agents.util import ainput
 

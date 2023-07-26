@@ -1,9 +1,9 @@
-from abc import ABC, abstractmethod
 import textwrap
-from typing import Optional, Union, Any
-from typing import Literal
-from pydantic import BaseModel, Field
+from abc import ABC, abstractmethod
 from datetime import datetime
+from typing import Any, Literal, Optional, Union
+
+from pydantic import BaseModel, Field
 
 """ Type definitions for interacting with the OpenAI API """
 

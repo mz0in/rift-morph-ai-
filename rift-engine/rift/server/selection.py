@@ -1,9 +1,9 @@
-from dataclasses import dataclass
 import itertools
+from dataclasses import dataclass
 from typing import Iterable, Union
 
-from rift.lsp.types import Range, Position, TextDocumentContentChangeEvent
-from rift.util.ofdict import todict, ofdict
+from rift.lsp.types import Position, Range, TextDocumentContentChangeEvent
+from rift.util.ofdict import ofdict, todict
 
 
 class RangeSet:

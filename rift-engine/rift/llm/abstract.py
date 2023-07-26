@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Optional, List
-from rift.util.TextStream import TextStream
+from typing import List, Optional
+
 from rift.llm.openai_types import Message
+from rift.util.TextStream import TextStream
 
 
 @dataclass
@@ -14,6 +15,7 @@ class InsertCodeResult:
 @dataclass
 class ChatResult:
     text: TextStream
+
 
 class AbstractCodeCompletionProvider(ABC):
     @abstractmethod
@@ -37,7 +39,11 @@ class AbstractCodeCompletionProvider(ABC):
 class AbstractChatCompletionProvider(ABC):
     @abstractmethod
     async def run_chat(
-        self, document: str, messages: List[Message], message: str, cursor_offset: Optional[int] = None
+        self,
+        document: str,
+        messages: List[Message],
+        message: str,
+        cursor_offset: Optional[int] = None,
     ) -> ChatResult:
         """
         Process the chat messages and return the completion results.

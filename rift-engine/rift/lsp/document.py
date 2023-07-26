@@ -4,12 +4,12 @@ This file is adapted from  https://github.com/EdAyers/sss
 """
 import bisect
 import contextlib
+import functools
+import re
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from enum import Enum
-import functools
 from pathlib import Path
-import re
 from typing import Iterable, Optional, Union
 from urllib.parse import urlparse
 
@@ -17,8 +17,10 @@ try:
     from typing import TypeAlias, TypeVar
 except:
     from typing_extensions import TypeAlias, TypeVar
-from rift.util.misc import set_ctx
+
 import logging
+
+from rift.util.misc import set_ctx
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +83,7 @@ class Position:
             line, col = offset
             return replace(self, line=self.line + line, character=self.character + col)
         else:
-            raise TypeError(
-                f"unsupported operand type(s) for +: 'Position' and '{type(offset)}'"
-            )
+            raise TypeError(f"unsupported operand type(s) for +: 'Position' and '{type(offset)}'")
 
     def __sub__(self, other: "Position") -> int:
         assert isinstance(other, Position)
@@ -187,9 +187,7 @@ class TextDocumentContentChangeEvent:
         raise ValueError("cannot map position")
 
     def map_range(self, range: "Range"):
-        return replace(
-            range, start=self.map_pos(range.start), end=self.map_pos(range.end)
-        )
+        return replace(range, start=self.map_pos(range.start), end=self.map_pos(range.end))
 
 
 SURROGATE_KEY_END = re.compile("[\ud800-\udbff]$", re.UNICODE)
@@ -229,9 +227,7 @@ class DocumentContext:
         return self.line_offsets[line_index]
 
     def get_line(self, index: int) -> str:
-        return self.text[
-            self.get_line_start_offset(index) : self.get_line_end_offset(index)
-        ]
+        return self.text[self.get_line_start_offset(index) : self.get_line_end_offset(index)]
 
     @property
     def position_encoding(self):
@@ -290,9 +286,7 @@ class DocumentContext:
         try:
             char = len(subline.encode(enc))
         except UnicodeEncodeError as e:
-            logger.error(
-                f"failed to encode line, falling back to counting bytes:\n{subline}\n{e}"
-            )
+            logger.error(f"failed to encode line, falling back to counting bytes:\n{subline}\n{e}")
             char = len(subline) * 2
 
         assert char % word_length == 0

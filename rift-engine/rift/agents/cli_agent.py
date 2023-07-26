@@ -8,15 +8,16 @@ import pickle as pkl
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterable, ClassVar, Dict, List, Optional, Type
 
-import rift.lsp.types as lsp
-import rift.server.core as core
-import rift.server.lsp as server
-import rift.util.file_diff as file_diff
 import smol_dev
 import tqdm.asyncio
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.panel import Panel
+
+import rift.lsp.types as lsp
+import rift.server.core as core
+import rift.server.lsp as server
+import rift.util.file_diff as file_diff
 from rift.lsp.types import InitializeParams
 from rift.rpc.io_transport import AsyncStreamTransport
 from rift.rpc.jsonrpc import RpcServer, rpc_method, rpc_request
@@ -29,6 +30,7 @@ import types
 
 import art
 import fire
+
 from rift.agents.util import ainput, stream_string, stream_string_ascii
 
 
@@ -161,12 +163,15 @@ async def main(agent_cls, params):
         agent_stats = AgentRunStats()
 
         async for file_changes in agent.run():
+            label = "rift"
+            if len(file_changes) > 0:
+                label = file_changes[0].description or label
             for file_change in file_changes:
                 agent_stats.stats["changed_files"].append(file_change.uri.uri)
-            await client.server.apply_workspace_edit(
+            resp = await client.server.apply_workspace_edit(
                 lsp.ApplyWorkspaceEditParams(
                     file_diff.edits_from_file_changes(file_changes, user_confirmation=True),
-                    label=file_changes[0].description or "rift",
+                    label=label,
                 )
             )
 

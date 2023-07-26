@@ -3,16 +3,7 @@ Author: E.W.Ayers <contact@edayers.com>
 This file is adapted from  https://github.com/EdAyers/sss
 """
 import inspect
-from typing import (
-    Any,
-    NewType,
-    get_origin,
-    get_args,
-    Type,
-    Literal,
-    Optional,
-    Union,
-)
+from typing import Any, Literal, NewType, Optional, Type, Union, get_args, get_origin
 
 
 def is_optional(T: Type) -> bool:

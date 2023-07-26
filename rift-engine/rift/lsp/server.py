@@ -2,24 +2,26 @@
 Author: E.W.Ayers <contact@edayers.com>
 This file is adapted from  https://github.com/EdAyers/sss
 """
-from dataclasses import dataclass, replace
-import logging
-from typing import Any, Awaitable, Callable, Optional, Union
 import asyncio
+import logging
+from collections import defaultdict
+from dataclasses import dataclass, replace
+from typing import Any, Awaitable, Callable, Optional, Union
+
+import rift.lsp.types as lsp
 from rift.util.misc import set_ctx
+from rift.util.ofdict import ofdict
+
+from ..rpc import InitializationMode, rpc_method
+from ..rpc.extrarpc import ExtraRpc
 from .types import (
+    ApplyWorkspaceEditParams,
+    ApplyWorkspaceEditResponse,
     InitializeParams,
     InitializeResult,
     PeerInfo,
     ServerCapabilities,
-    ApplyWorkspaceEditParams,
-    ApplyWorkspaceEditResponse,
 )
-import rift.lsp.types as lsp
-from collections import defaultdict
-from ..rpc import InitializationMode, rpc_method
-from ..rpc.extrarpc import ExtraRpc
-from rift.util.ofdict import ofdict
 
 """ Implementation of an LSP server """
 
@@ -58,9 +60,7 @@ class LspServer(ExtraRpc):
         self, uri: lsp.DocumentUri, position: lsp.Position, text: str, version: int = 0
     ):
         assert version is not None, "version must be given, or we get no edit."
-        textDocument = lsp.TextDocumentIdentifier(
-            uri=uri, version=version
-        )  # [todo] version
+        textDocument = lsp.TextDocumentIdentifier(uri=uri, version=version)  # [todo] version
         newText = text
         pos = position
         params = lsp.ApplyWorkspaceEditParams(
