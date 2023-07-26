@@ -54,6 +54,6 @@ python -m rift.agents.gpt_eng --port 7797 --debug False --model gpt-4-0613
 
 - `aider`:
 ```python
-python -m rift.agents.aider
+python -m rift.agents.aider_agent
 ```
 
