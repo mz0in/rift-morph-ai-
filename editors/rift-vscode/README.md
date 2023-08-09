@@ -1,37 +1,47 @@
-Rift is an AI-native language server and extension that lets you deploy a personal AI software engineer — locally hosted, private, secure, and free.
+# Rift VSCode Extension
 
-Rift and this extension are fully [open-source](https://github.com/morph-labs/rift/tree/main/editors/rift-vscode).
+Rift turns your IDE into an intelligent development environment and connects code language models to your codebase and editor. Work 10X faster with your personal team of AI software engineers.
 
 ## About
-The future of AI code assistants is open-source, private, secure, and on-device. Rift understands, explains, and writes code with language models that run entirely on your device using the open source [Rift Code Engine](https://github.com/morph-labs/rift/tree/main/rift-engine).
+
+Rift (https://www.github.com/morph-labs/rift) is an open-source AI-native language server that turns VSCode into an IDE from the future. Create and iterate on entire projects by communicating and collaborating with coding agents that can anticipate, maintain context on, and execute on your intentions expressed in natural language.
+
+Today, with Rift, you can do all of the following without ever leaving VSCode or copy-pasting from a browser chat window:
+
+- Generate an entire workspace, or a module based on other parts of your codebase
+- Conversationally iterate on code edits over selected regions which are streamed directly into your editor window
+- Request, review, and iterate on PRs: codebase-wide, multi-file diffs
 
 ## Installation
-Install the VSCode extension from the VSCode Marketplace or by building and installing from the VSIX bundle produced by the following steps:
 
-- Increment the semver number (e.g. 0.0.8 to 0.0.9) in the `package.json`
-- run `vsce package`
-- Install from the VSIX by searching "VSIX" from the VSCode command palette.
+From the VSCode Marketplace:
 
-## Usage 
-1. Ensure the [Rift Code Engine](https://github.com/morph-labs/rift/tree/main/rift-engine) is installed and running on port 7797:
+- Click on the extension icon in the sidebar
+- Search for "Rift"
+- Click the install button.
+
+For development / testing: 
+
+Run the following steps in a terminal:
 
 ```bash
+# clone latest version of extension and rift language server
 git clone https://www.github.com/morph-labs/rift
-cd rift
 
-# set up a virtual environment with Python (>=3.9), then install the `rift` Python package
-pip install -e ./rift-engine
-
-# launch the language server
-python -m rift.server.core --host 127.0.0.1 --port 7797
+# reinstall the extension
+cd editors/rift-vscode
+bash reinstall.sh # installs the extension to `code`, change the executable as needed
 ```
 
-This requires a working Python (>=3.9) installation.
-2. Access the chat interface by clicking on the sidebar icon.
-3. Trigger code completions in the editor window using the keyboard shortcut (`Ctrl + M`) or by running the `Rift: Code Completion` command (`Ctrl + Shift + P`  +  type "Rift"). If the extension is unable to connect to the server, try running the command `Developer: Reload Window`
+Then open VSCode.
 
-## Development
-See [here](https://github.com/morph-labs/rift/blob/main/editors/rift-vscode/CONTRIBUTING.md) for instructions on how to develop this extension.
+## Usage
+- Press Command+K to focus the Rift Omnibar.
+  - Once focused, you can either engage with the current chat or use a slash-command (e.g. `/aider`) to spawn a new agent.
+- Each instance of a Rift Chat or Code Edit agent will remain attached to the open file / selection you used to spawn it.
+  - To switch to a new file or request a code edit on a new selection, spawn a new agent by pressing Command+K and running a slash-command (e.g. `/edit`)
+  - Both Rift Chat and Code Edit see a window around your cursor or selection in the currently active editor window. To tell them about other resources in your codebase, mention them with `@`.
+  - Code Edit 
+- You can `@`-mention files and directories to tell your agents about other parts of the codebase.
+- Currently, Rift works best when the active workspace directory is the same as the root directory of the `git` project.
 
-## Community
-Join our [community]([https://discord.gg/wa5sgWMfqv](https://discord.gg/wa5sgWMfqv)) to share your feedback, get help, and engage with the [Morph](https://morph.so) team. Help us shape the future of software.

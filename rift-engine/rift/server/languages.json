@@ -1,0 +1,230 @@
+{
+    "languages": [
+        {
+            "id": "java",
+            "extensions": [ ".java", ".jav" ],
+            "aliases": [ "Java", "java" ]
+        },
+        {
+            "id": "javascript",
+            "extensions": [ ".js" ],
+            "aliases": [ "JavaScript", "javascript", "JS", "js" ]
+        },
+        {
+            "id": "python",
+            "extensions": [ ".py" ],
+            "aliases": [ "Python", "python", "py" ]
+        },
+        {
+            "id": "csharp",
+            "extensions": [ ".cs" ],
+            "aliases": [ "C#", "csharp", "cs" ]
+        },
+        {
+            "id": "php",
+            "extensions": [ ".php" ],
+            "aliases": [ "PHP", "php" ]
+        },
+        {
+            "id": "c",
+            "extensions": [ ".c" ],
+            "aliases": [ "C", "c" ]
+        },
+        {
+            "id": "cpp",
+            "extensions": [ ".cpp", ".c++", ".cc" ],
+            "aliases": [ "C++", "cpp", "c++" ]
+        },
+        {
+            "id": "ruby",
+            "extensions": [ ".rb" ],
+            "aliases": [ "Ruby", "ruby" ]
+        },
+        {
+            "id": "go",
+            "extensions": [ ".go" ],
+            "aliases": [ "Go", "go" ]
+        },
+        {
+            "id": "swift",
+            "extensions": [ ".swift" ],
+            "aliases": [ "Swift", "swift" ]
+        },
+        {
+            "id": "typescript",
+            "extensions": [ ".ts" ],
+            "aliases": [ "TypeScript", "typescript", "TS", "ts" ]
+        },
+        {
+            "id": "rust",
+            "extensions": [ ".rs" ],
+            "aliases": [ "Rust", "rust" ]
+        },
+        {
+            "id": "perl",
+            "extensions": [ ".pl", ".pm" ],
+            "aliases": [ "Perl", "perl" ]
+        },
+        {
+            "id": "scala",
+            "extensions": [ ".scala" ],
+            "aliases": [ "Scala", "scala" ]
+        },
+        {
+            "id": "lua",
+            "extensions": [ ".lua" ],
+            "aliases": [ "Lua", "lua" ]
+        },
+        {
+            "id": "kotlin",
+            "extensions": [ ".kt", ".kts" ],
+            "aliases": [ "Kotlin", "kotlin" ]
+        },
+        {
+            "id": "html",
+            "extensions": [ ".html", ".htm" ],
+            "aliases": [ "HTML", "html" ]
+        },
+        {
+            "id": "css",
+            "extensions": [ ".css" ],
+            "aliases": [ "CSS", "css" ]
+        },
+        {
+            "id": "shell",
+            "extensions": [ ".sh", ".bash" ],
+            "aliases": [ "Shell", "shell" ]
+        },
+        {
+            "id": "sql",
+            "extensions": [ ".sql" ],
+            "aliases": [ "SQL", "sql" ]
+        },
+        {
+            "id": "r",
+            "extensions": [ ".r", ".R" ],
+            "aliases": [ "R", "r" ]
+        },
+        {
+            "id": "matlab",
+            "extensions": [ ".m" ],
+            "aliases": [ "Matlab", "matlab" ]
+        },
+        {
+            "id": "haskell",
+            "extensions": [ ".hs" ],
+            "aliases": [ "Haskell", "haskell" ]
+        },
+        {
+            "id": "groovy",
+            "extensions": [ ".groovy" ],
+            "aliases": [ "Groovy", "groovy" ]
+        },
+        {
+            "id": "objective-c",
+            "extensions": [ ".m", ".mm" ],
+            "aliases": [ "Objective-C", "objective-c", "objc" ]
+        },
+        {
+            "id": "vb",
+            "extensions": [ ".vb" ],
+            "aliases": [ "Visual Basic", "vb" ]
+        },
+        {
+            "id": "postgresql",
+            "extensions": [ ".sql" ],
+            "aliases": [ "PostgreSQL", "postgresql" ]
+        },
+        {
+            "id": "mysql",
+            "extensions": [ ".sql" ],
+            "aliases": [ "MySQL", "mysql" ]
+        },
+        {
+            "id": "mongodb",
+            "extensions": [ ".js" ],
+            "aliases": [ "MongoDB", "mongodb" ]
+        },
+        {
+            "id": "redis",
+            "extensions": [ ".redis" ],
+            "aliases": [ "Redis", "redis" ]
+        },
+        {
+            "id": "assembly",
+            "extensions": [ ".asm", ".s" ],
+            "aliases": [ "Assembly", "assembly" ]
+        },
+        {
+            "id": "powershell",
+            "extensions": [ ".ps1" ],
+            "aliases": [ "PowerShell", "powershell" ]
+        },
+        {
+            "id": "cobol",
+            "extensions": [ ".cob", ".cbl" ],
+            "aliases": [ "COBOL", "cobol" ]
+        },
+        {
+            "id": "fortran",
+            "extensions": [ ".f", ".for", ".f90" ],
+            "aliases": [ "Fortran", "fortran" ]
+        },
+        {
+            "id": "elixir",
+            "extensions": [ ".ex", ".exs" ],
+            "aliases": [ "Elixir", "elixir" ]
+        },
+        {
+            "id": "erlang",
+            "extensions": [ ".erl", ".hrl" ],
+            "aliases": [ "Erlang", "erlang" ]
+        },
+        {
+            "id": "perl6",
+            "extensions": [ ".p6", ".pl6", ".pm6" ],
+            "aliases": [ "Perl 6", "perl6" ]
+        },
+        {
+            "id": "d",
+            "extensions": [ ".d" ],
+            "aliases": [ "D", "d" ]
+        },
+        {
+            "id": "coffeescript",
+            "extensions": [ ".coffee" ],
+            "aliases": [ "CoffeeScript", "coffeescript", "coffee" ]
+        },
+        {
+            "id": "ocaml",
+            "extensions": [ ".ml" ],
+            "aliases": [ "OCaml", "ocaml" ]
+        },
+        {
+            "id": "julia",
+            "extensions": [ ".jl" ],
+            "aliases": [ "Julia", "julia" ]
+        },
+        {
+            "id": "apex",
+            "extensions": [ ".cls" ],
+            "aliases": [ "Salesforce Apex", "apex" ]
+        },
+        {
+            "id": "abap",
+            "extensions": [ ".abap" ],
+            "aliases": [ "ABAP", "abap" ]
+        },
+        {
+            "id": "forth",
+            "extensions": [ ".fs", ".fth" ],
+            "aliases": [ "Forth", "forth" ]
+        },
+        {
+            "id": "scheme",
+            "extensions": [ ".scm", ".ss" ],
+            "aliases": [ "Scheme", "scheme" ]
+        }
+    ]
+}
+

@@ -5,7 +5,6 @@ This file is adapted from  https://github.com/EdAyers/sss
 import inspect
 import json
 import logging
-from collections import ChainMap
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import fields, is_dataclass
@@ -13,20 +12,7 @@ from datetime import datetime
 from enum import Enum
 from functools import singledispatch
 from pathlib import Path
-from typing import (
-    Any,
-    ClassVar,
-    Dict,
-    List,
-    Literal,
-    NewType,
-    Optional,
-    Type,
-    TypeVar,
-    Union,
-    get_args,
-    get_origin,
-)
+from typing import Any, ClassVar, Literal, Optional, Type, TypeVar, Union, get_args, get_origin
 
 from pydantic import ValidationError
 
@@ -52,28 +38,53 @@ def is_json_key(key: Any) -> TypeGuard[JsonKey]:
     return isinstance(key, (str, int, float, bool, type(None)))
 
 
-def ofdict_dataclass(A: Type[T], a: JsonLike) -> T:
-    assert is_dataclass(A)
-    d2 = {}
-    for f in fields(A):
-        if not isinstance(a, dict):
+def ofdict_dataclass(data_class_type: Type[T], json_like_object: JsonLike) -> T:
+    """
+    Converts JSON-like object passed as a parameter to the specified data class type.
+
+    :param data_class_type: The data class type to which the JSON-like object will be converted.
+    :param json_like_object: The JSON-like object to be converted to the specified data class type.
+
+    :return: The data class type instance built from the JSON-like object
+    """
+    # Validation to ensure passed data_class_type is a dataclass
+    assert is_dataclass(data_class_type)
+
+    # Dictionary that will be constructed from json_like_object
+    parsed_dict = {}
+
+    # Iterating over all the fields of the data class
+    for field in fields(data_class_type):
+        # Check if the json_like_object is dictionary
+        if not isinstance(json_like_object, dict):
             raise OfDictError(
-                f"Error while decoding dataclass {A}, expected a dict but got {a} : {type(a)}"
+                f"Error while decoding dataclass {data_class_type}, expected a dict but got {json_like_object} : {type(json_like_object)}"
             )
-        k = f.name
-        if k not in a:
-            if f.type is not None and is_optional(f.type):
-                v = None
+
+        # Fetch the field name
+        key = field.name
+
+        # Check if the key is not in the json_like_object
+        if key not in json_like_object:
+            # Check if key's type is optional
+            if field.type is not None and is_optional(field.type):
+                value = None
             else:
-                raise OfDictError(f"Missing {f.name} on input dict. Decoding {a} to type {A}.")
+                raise OfDictError(
+                    f"Missing {field.name} on input dict. Decoding {json_like_object} to type {data_class_type}."
+                )
         else:
-            v = a[k]
-        if f.type is not None:
-            with dpath(k):
-                d2[k] = ofdict(f.type, v)
+            value = json_like_object[key]
+
+        # Process the value if the type is defined for field
+        if field.type is not None:
+            with dpath(key):
+                parsed_dict[key] = ofdict(field.type, value)
         else:
-            d2[k] = v
-    return A(**d2)  # type: ignore
+            parsed_dict[key] = value
+
+    # Return instance of the data class
+    return data_class_type(**parsed_dict)  # type: ignore
 
 
 ofdict_context: ContextVar[list[str]] = ContextVar("ofdict_context", default=[])
@@ -114,6 +125,12 @@ def ofdict(A: Type[T], a: JsonLike) -> T:
 
     [todo] I am hoping to retire this in favour of Pydantic.
     """
+    # try:
+    #     return A(**a)
+    # except ValidationError as e:
+    #     print(e.errors())
+    #     raise e
+
     if isinstance(A, str):
         raise TypeError(
             f"please make sure your class {A} is referred using types and not string-escaped types"

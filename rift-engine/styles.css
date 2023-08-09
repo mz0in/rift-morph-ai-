@@ -1,0 +1,30 @@
+/* styles.css */
+
+/* Styling for the game canvas */
+#gameCanvas {
+  width: 600px;
+  height: 400px;
+  background-color: #000;
+}
+
+/* Styling for the paddle */
+.paddle {
+  width: 10px;
+  height: 60px;
+  background-color: #fff;
+}
+
+/* Styling for the ball */
+.ball {
+  width: 10px;
+  height: 10px;
+  background-color: #fff;
+  border-radius: 50%;
+}
+
+/* Styling for the score */
+.score {
+  color: #fff;
+  font-size: 24px;
+  font-weight: bold;
+}

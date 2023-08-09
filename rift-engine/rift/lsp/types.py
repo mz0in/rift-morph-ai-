@@ -483,3 +483,9 @@ class ConfigurationParams:
 class DidChangeConfigurationParams:
     settings: Optional[Any] = field(default=None)
     """ The actual changed settings """
+
+
+@dataclass
+class Document:
+    uri: DocumentUri
+    document: DocumentContext

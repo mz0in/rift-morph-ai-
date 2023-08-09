@@ -1,37 +1,50 @@
 {
-  "name": "rift-vscode",
-  "displayName": "Rift",
-  "description": "Rift: an AI-native language server for your personal AI software engineer.",
-  "version": "0.0.8",
-  "icon": "resources/vsce-icon.png",
-  "licence": "Apache 2.0",
-  "publisher": "Morph",
-  "repository": "https://github.com/morph-labs/rift",
+  "name": "rift",
+  "repository": "https://www.github.com/morph-labs/rift",
+  "publisher": "morph",
+  "displayName": "rift",
+  "description": "",
+  "version": "0.0.9",
   "engines": {
     "vscode": "^1.71.0"
   },
-  "contributors": [
-    {
-      "name": "Morph Labs",
-      "email": "support@morph.so"
-    }
+  "enabledApiProposals": [
+    "extensionRuntime"
   ],
   "categories": [
     "Other"
   ],
   "activationEvents": [
-    "onView:RiftChat"
+    "onView"
   ],
-  "main": "./out/main.js",
+  "main": "./dist/extension.js",
   "contributes": {
-    "keybindings": {
-      "command": "rift.run_helper",
-      "key": "ctrl+m",
-      "when": "editorTextFocus"
-    },
+    "keybindings": [
+      {
+        "command": "rift.run_agent",
+        "key": "ctrl+m",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "rift.focus_omnibar",
+        "key": "ctrl+k",
+        "mac": "cmd+k"
+      }
+    ],
     "configuration": {
       "title": "Rift",
       "properties": {
+        "rift.autostart": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": true,
+          "enum": [
+            true,
+            false
+          ]
+        },
         "rift.openaiKey": {
           "type": [
             "string",
@@ -60,16 +73,6 @@
             "openai:gpt-4"
           ],
           "markdownDescription": "model to use for completions. (remember to set the OpenAI API key if using an openai:* model). You can also set your own (use the JSON settings editor), the format is `{type}:{name} [@ {path}]` where `type` is one of `gpt4all`, `openai`, or `hf` (for huggingface models), `name` is the name of the model, and `path` is an optional path to the downloaded model weights."
-        },
-        "rift.engineServer.host": {
-          "type": "string",
-          "default": "127.0.0.1",
-          "description": "Specifies the host that the Rift Engine is running on."
-        },
-        "rift.engineServer.port": {
-          "type": "integer",
-          "default": 7797,
-          "description": "Specifies the port number the Rift Engine is listening on."
         }
       }
     },
@@ -77,7 +80,7 @@
       "activitybar": [
         {
           "id": "Rift",
-          "title": "Chat",
+          "title": "Rift Dashboard",
           "icon": "resources/icon.svg"
         }
       ]
@@ -88,6 +91,11 @@
           "type": "webview",
           "id": "RiftChat",
           "name": "Chat"
+        },
+        {
+          "type": "webview",
+          "id": "RiftLogs",
+          "name": "Rift Agents"
         }
       ]
     },
@@ -95,46 +103,116 @@
       {
         "view": "RiftChat",
         "contents": "Chat with a local code model."
+      },
+      {
+        "view": "RiftLogs",
+        "contents": "Agent logging."
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "rift.reset_chat",
+          "when": "view == RiftChat",
+          "group": "navigation"
+        }
+      ]
+    },
     "commands": [
       {
-        "command": "rift.run_helper",
+        "command": "rift.run_agent",
         "title": "Rift: Code Completion"
+      },
+      {
+        "command": "rift.start_server",
+        "title": "Rift: Start Server"
+      },
+      {
+        "command": "rift.reset_chat",
+        "title": "Reset Chat",
+        "icon": {
+          "light": "media/icons/resetLight.svg",
+          "dark": "media/icons/resetDark.svg"
+        }
+      },
+      {
+        "command": "rift.focus_omnibar",
+        "title": "Rift: Focus Omnibar"
+      },
+      {
+        "command": "rift.mockTypeCommandP",
+        "title": "Rift: Mock Mock Mock"
       }
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "node ./build.mjs",
-    "watch": "node ./build.mjs --watch",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "vscode:prepublish": "npm run clean && npm run package",
+    "compile": "concurrently \"rollup -c rollup.config.js\" \"webpack --config ./build/node-extension.webpack.config.cjs\"",
+    "watch": "concurrently \"rollup -c rollup.config.js -w\" \"webpack --watch --config ./build/node-extension.webpack.config.cjs\"",
+    "package": "concurrently \"rollup -c rollup.config.js\" \"webpack --mode production --devtool hidden-source-map --config ./build/node-extension.webpack.config.cjs\"",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint --ext ts src",
+    "format": "prettier --write .",
+    "test": "node ./out/test/runTest.js",
+    "clean": "rm -rf out/compiled & rm -rf dist/*"
   },
   "devDependencies": {
-    "@types/glob": "^8.0.0",
-    "@types/mocha": "^10.0.0",
-    "@types/node": "16.x",
-    "@types/react": "^18.0.26",
-    "@types/react-dom": "^18.0.10",
-    "@types/vscode": "^1.71.0",
-    "@types/websocket": "^1.0.5",
-    "@typescript-eslint/eslint-plugin": "^5.38.1",
-    "@typescript-eslint/parser": "^5.38.1",
-    "@vscode/test-electron": "^2.1.5",
-    "esbuild": "^0.16.17",
-    "eslint": "^8.24.0",
-    "glob": "^8.0.3",
-    "mocha": "^10.0.0",
-    "typescript": "^4.8.4"
+    "@rollup/plugin-commonjs": "^17.0.0",
+    "@rollup/plugin-node-resolve": "^11.0.1",
+    "@rollup/plugin-typescript": "^8.1.0",
+    "@tsconfig/svelte": "^1.0.10",
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "20.2.5",
+    "@types/sass": "^1.45.0",
+    "@types/showdown": "^2.0.1",
+    "@types/tcp-port-used": "^1.0.1",
+    "@types/uuid": "^9.0.2",
+    "@types/vscode": "^1.54.0",
+    "@typescript-eslint/eslint-plugin": "^5.59.8",
+    "@typescript-eslint/parser": "^5.62.0",
+    "@vscode/test-electron": "^2.3.2",
+    "concurrently": "^8.2.0",
+    "eslint": "^8.41.0",
+    "eslint-import-resolver-typescript": "^3.5.5",
+    "eslint-plugin-import": "^2.27.5",
+    "glob": "^8.1.0",
+    "mocha": "^10.2.0",
+    "prettier": "^3.0.0",
+    "rollup": "^2.3.4",
+    "rollup-plugin-svelte": "^6.0.0",
+    "rollup-plugin-terser": "^7.0.2",
+    "svelte": "^3.31.0",
+    "svelte-check": "^1.1.23",
+    "svelte-preprocess": "^4.10.7",
+    "ts-loader": "^9.4.3",
+    "typescript": "^4.9.3",
+    "webpack": "^5.85.0",
+    "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@vscode/vsce": "^2.19.0",
+    "@tiptap/core": "^2.0.4",
+    "@tiptap/extension-mention": "^2.0.4",
+    "@tiptap/extension-placeholder": "^2.0.4",
+    "@tiptap/pm": "^2.0.4",
+    "@tiptap/starter-kit": "^2.0.4",
+    "@tiptap/suggestion": "^2.0.4",
+    "@vscode/python-extension": "^1.0.4",
+    "@vscode/webview-ui-toolkit": "^1.2.2",
     "delay": "^6.0.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "tcp-port-used": "^1.0.1",
-    "vscode-languageclient": "^8.0.2"
+    "fkill": "^8.1.1",
+    "gitignore-parser": "^0.0.2",
+    "ignore": "^5.2.4",
+    "morphdom": "^2.7.0",
+    "node-fetch": "^3.3.2",
+    "showdown": "^2.1.0",
+    "tcp-port-used": "^1.0.2",
+    "tippy.js": "^6.3.7",
+    "uuid": "^9.0.0",
+    "vscode-jsonrpc": "^8.1.0",
+    "vscode-languageclient": "^8.1.0",
+    "vscode-languageserver-protocol": "^3.17.3"
   }
 }

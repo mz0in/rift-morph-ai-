@@ -1,6 +1,6 @@
 import functools
 import weakref
-from typing import Literal, Optional
+from typing import Literal, Optional, Tuple
 
 from pydantic import BaseModel, SecretStr
 
@@ -56,9 +56,7 @@ def create_client(
         return client
 
 
-def create_client_core(
-    config: str, openai_api_key: Optional[SecretStr]
-) -> AbstractCodeCompletionProvider:
+def parse_type_name_path(config: str) -> Tuple[str, str, str]:
     assert ":" in config, f"Invalid config: {config}"
     type, rest = config.split(":", 1)
     type = type.strip()
@@ -69,6 +67,20 @@ def create_client_core(
         path = ""
     name = name.strip()
     path = path.strip()
+    return (type, name, path)
+
+
+def create_client_core(
+    config: str, openai_api_key: Optional[SecretStr]
+) -> AbstractCodeCompletionProvider:
+    """
+    The function parses the `config` string to extract the `type` and the rest of the configuration. It then checks the `type` and based on that, returns different instances of code completion providers.
+
+    For example, if the `type` is `"hf"`, it imports and returns an instance of `HuggingFaceClient` from `rift.llm.hf_client`. If the `type` is `"openai"`, it imports and returns an instance of `OpenAIClient` from `rift.llm.openai_client` with some additional keyword arguments. If the `type` is `"gpt4all"`, it imports and returns an instance of `Gpt4AllModel` from `rift.llm.gpt4all_model` with some additional settings and keyword arguments.
+
+    If the `type` is none of the above, it raises a `ValueError` with a message indicating that the model is unknown.
+    """
+    type, name, path = parse_type_name_path(config)
     if type == "hf":
         from rift.llm.hf_client import HuggingFaceClient
 

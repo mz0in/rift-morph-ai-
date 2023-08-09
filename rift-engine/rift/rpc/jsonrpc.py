@@ -439,7 +439,7 @@ class RpcServer:
         req = Request(method=method, params=params)
         await self._send(req)
 
-    async def request(self, method: str, params: Optional[Any]) -> Any:
+    async def request(self, method: str, params: Optional[Any]) -> asyncio.Future[Any]:
         """Send a request to the peer and wait for a response.
 
         Args:
@@ -465,6 +465,7 @@ class RpcServer:
         self.request_counter += 1
         id = self.request_counter
         req = Request(method=method, id=id, params=params)
+        # print("REQUEST: ", req)
         fut = asyncio.get_running_loop().create_future()
         # [todo] I think the pythonic way to do this is to have this dict be a weakref, and the
         # caller is responsible for holding the request object.
@@ -473,8 +474,7 @@ class RpcServer:
             raise RuntimeError(f"non-unique request id {id} found")
         self.my_requests[id] = fut
         await self._send(req)
-        result = await fut
-        return result
+        return await fut
 
     async def _send_init(self, init_param):
         """Send an initialization request to the peer."""
@@ -570,6 +570,7 @@ class RpcServer:
         logger.info(f"{self} entered shutdown state")
 
     def _handle_message(self, message: Any):
+        # logger.info(f"incoming message {message=}")
         if "result" in message or "error" in message:
             # message is a Response
             res = ofdict(Response, message)

@@ -91,7 +91,9 @@ class CodeCapabilitiesServer:
         assert isinstance(self.lsp_host, str)
         assert isinstance(self.lsp_port, int)
         try:
-            server = await asyncio.start_server(self.on_lsp_connection, self.lsp_host, self.lsp_port)
+            server = await asyncio.start_server(
+                self.on_lsp_connection, self.lsp_host, self.lsp_port
+            )
         except OSError as e:
             logger.error(str(e))
             logger.info(f"try connecting to {self.lsp_host}:{self.lsp_port}")
@@ -175,7 +177,8 @@ def main(
     debug=False,
 ):
     metaserver = create_metaserver(host, port, version, debug)
-    asyncio.run(metaserver.run_forever(), debug=debug)
+    if metaserver:
+        asyncio.run(metaserver.run_forever(), debug=debug)
 
 
 if __name__ == "__main__":

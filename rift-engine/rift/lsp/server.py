@@ -34,13 +34,14 @@ class LspServer(ExtraRpc):
     # [todo] consider using io.StringIO for the documents because they are mutating.
     documents: dict[lsp.DocumentUri, lsp.TextDocumentItem]
     change_callbacks: defaultdict[lsp.DocumentUri, set[Callable]]
-    """ set of open documents, the server will keep these synced with the client
-     editor automatically. """
+    fts: dict[str, asyncio.Future]
+    """set of open documents, the server will keep these synced with the client editor automatically."""
 
     def __init__(self, transport):
         self.change_callbacks = defaultdict(set)
         self.capabilities = ServerCapabilities()
-        self.documents = {}
+        self.documents = dict()
+        self.fts = dict()
         super().__init__(transport, init_mode=InitializationMode.ExpectInit)
 
     @rpc_method("initialize")
@@ -80,6 +81,29 @@ class LspServer(ExtraRpc):
         )
         return await self.apply_workspace_edit(params)
 
+    async def apply_range_edit(
+        self, uri: lsp.DocumentUri, range: lsp.Range, text: str, version: int = 0
+    ):
+        assert version is not None, "version must be given, or we get no edit."
+        textDocument = lsp.TextDocumentIdentifier(uri=uri, version=version)  # [todo] version
+        newText = text
+        params = lsp.ApplyWorkspaceEditParams(
+            edit=lsp.WorkspaceEdit(
+                documentChanges=[
+                    lsp.TextDocumentEdit(
+                        textDocument=textDocument,
+                        edits=[
+                            lsp.TextEdit(
+                                range=range,
+                                newText=newText,
+                            )
+                        ],
+                    )
+                ]
+            )
+        )
+        return await self.apply_workspace_edit(params)
+
     async def apply_workspace_edit(
         self, params: ApplyWorkspaceEditParams
     ) -> ApplyWorkspaceEditResponse:
@@ -95,6 +119,7 @@ class LspServer(ExtraRpc):
         item = params.textDocument
         logger.debug(f"editor opened {item.uri}")
         self.documents[item.uri] = item
+        # return {"status": "ok"}
 
     @rpc_method("textDocument/didChange")
     async def _on_did_change(self, params: lsp.DidChangeTextDocumentParams):
@@ -129,7 +154,6 @@ class LspServer(ExtraRpc):
         changes: lsp.DidChangeTextDocumentParams,
     ):
         """Override this method to handle document changes"""
-        pass
 
     @rpc_method("textDocument/didSave")
     def on_did_save(self, params: lsp.DidSaveTextDocumentParams):

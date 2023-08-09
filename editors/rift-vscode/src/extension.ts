@@ -1,156 +1,93 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
-import { MorphLanguageClient } from './client';
-import { join } from 'path';
-import { TextDocumentIdentifier } from 'vscode-languageclient';
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+import * as vscode from "vscode";
+import { MorphLanguageClient } from "./client";
+import { WebviewProvider } from "./elements/WebviewProvider";
+import { ensureRiftHook, checkExtensionVersion } from "./activation/environmentSetup";
+export let chatProvider: WebviewProvider;
+export let logProvider: WebviewProvider;
+
 export function activate(context: vscode.ExtensionContext) {
-    // const infoview = new Infoview(context)
-    // context.subscriptions.push(infoview)
+    const autostart: boolean | undefined = vscode.workspace
+        .getConfiguration("rift")
+        .get("autostart");
 
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "rift" is now active!');
+    checkExtensionVersion();
 
-    // The command has been defined in the package.json file
-    // Now provide the implementation of the command with registerCommand
-    // The commandId parameter must match the command field in package.json
-    let disposable = vscode.commands.registerCommand('rift.run_helper', async () => {
-        // get the current active cursor position
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            console.error('No active text editor found');
-            return
-        }
-        // get the uri and position of the current cursor
-        const doc = editor.document;
-        const textDocument = { uri: doc.uri.toString(), version: 0 }
-        const position = editor.selection.active;
-        let task = await vscode.window.showInputBox({
-            ignoreFocusOut: true,
-            placeHolder: 'Write the function body',
-            prompt: 'Enter a description of what you want the helper to do...',
-        });
-        if (task === undefined) {
-            console.log('run_helper task was cancelled')
-            return
-        }
-        const r = await hslc.run_helper({ position, textDocument, task })
-    });
+    if (autostart) {
+        ensureRiftHook();
+    }
 
-    context.subscriptions.push(disposable);
-
-    let hslc = new MorphLanguageClient(context)
-    context.subscriptions.push(hslc)
-    const provider = async (document, position, context, token) => {
-        return [
-            { insertText: await hslc.provideInlineCompletionItems(document, position, context, token) }
-        ]
-    };
+    let morph_language_client = new MorphLanguageClient(context);
 
     context.subscriptions.push(
-        vscode.languages.registerInlineCompletionItemProvider(
-            { pattern: "*" },
-            { provideInlineCompletionItems: provider }
-        )
+        vscode.languages.registerCodeLensProvider("*", morph_language_client)
+    );
+
+    chatProvider = new WebviewProvider(
+        "Chat",
+        context.extensionUri,
+        morph_language_client
+    );
+    logProvider = new WebviewProvider(
+        "Logs",
+        context.extensionUri,
+        morph_language_client
+    );
+
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider("RiftChat", chatProvider, {
+            webviewOptions: { retainContextWhenHidden: true },
+        })
     );
     context.subscriptions.push(
-        vscode.languages.registerCodeLensProvider('*', hslc)
-    )
+        vscode.window.registerWebviewViewProvider("RiftLogs", logProvider, {
+            webviewOptions: { retainContextWhenHidden: true },
+        })
+    );
+
+    let recentlyOpenedFiles: string[] = [];
+    vscode.workspace.onDidOpenTextDocument((document) => {
+        const filePath = document.uri.fsPath;
+        if (filePath.endsWith(".git")) return; // weirdly getting both file.txt and file.txt.git on every file change
+
+        // Check if file path already exists in the recent files list
+        const existingIndex = recentlyOpenedFiles.indexOf(filePath);
+
+        // If the file is found, remove it from the current location
+        if (existingIndex > -1) {
+            recentlyOpenedFiles.splice(existingIndex, 1);
+        }
+
+        // Add the file to the end of the list (top of the stack)
+        recentlyOpenedFiles.push(filePath);
+
+        // Limit the history to the last 10 files
+        if (recentlyOpenedFiles.length > 10) {
+            recentlyOpenedFiles.shift();
+        }
+
+        morph_language_client.sendRecentlyOpenedFilesChange(recentlyOpenedFiles);
+    });
+    console.log('Congratulations, your extension "rift" is now active!');
+
+    let disposablefocusOmnibar = vscode.commands.registerCommand(
+        "rift.focus_omnibar",
+        async () => {
+            // vscode.window.createTreeView("RiftChat", chatProvider)
+            vscode.commands.executeCommand("RiftChat.focus");
+
+            morph_language_client.focusOmnibar();
+        }
+    );
+
     context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider('RiftChat', new ChatView(context.extensionUri, hslc))
-    )
+        vscode.commands.registerCommand("rift.reset_chat", () => {
+            morph_language_client.restartActiveAgent();
+        })
+    );
 
-}
-
-
-export class ChatView implements vscode.WebviewViewProvider {
-
-    private _view?: vscode.WebviewView;
-
-    // In the constructor, we store the URI of the extension
-    constructor(private readonly _extensionUri: vscode.Uri, public hslc: MorphLanguageClient) {
-    }
-
-
-
-    public resolveWebviewView(
-        view: vscode.WebviewView,
-        context: vscode.WebviewViewResolveContext,
-        _token: vscode.CancellationToken,
-    ) {
-        this._view = view;
-        view.webview.options = {
-            enableScripts: true,
-            localResourceRoots: [
-                this._extensionUri
-            ]
-        };
-        view.webview.html = this._getHtmlForWebview(view.webview);
-
-
-        // const backgroundColor = new vscode.ThemeColor('editor.background'); can make this look nice for any given vscode theme but takes some extra work I'm not doing now
-
-        view.webview.onDidReceiveMessage(data => {
-            if (data.command === "copyText") {
-                console.log('recieved copy in webview')
-                vscode.env.clipboard.writeText(data.content)
-                vscode.window.showInformationMessage('Text copied to clipboard!')
-                return
-            }
-
-            const editor = vscode.window.activeTextEditor;
-            if (!editor) {
-                console.error('No active text editor found');
-                return
-            }
-            // get the uri and position of the current cursor
-            const doc = editor.document;
-            const position = editor.selection.active;
-            const textDocument = { uri: doc.uri.toString(), version: 0 }
-            if (!data.message || !data.messages) throw new Error()
-            this.hslc.run_chat({ message: data.message, messages: data.messages, position, textDocument }, (progress) => {
-                if (!this._view) throw new Error()
-                if (progress.done) console.log('WEBVIEW DONE RECEIVEING / POSTING')
-                this._view.webview.postMessage({ type: 'progress', data: progress });
-            })
-
-
-        });
-    }
-
-
-    private _getHtmlForWebview(webview: vscode.Webview) {
-        const tailwindUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'scripts', 'tailwind.min.js'));
-        const microlightUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'scripts', 'microlight.min.js'));
-        const chatScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'scripts', 'chat.js'));
-        const showdownUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'scripts', 'showdown.min.js'));
-
-        return `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <script src="${tailwindUri}"></script>
-            <script src="${microlightUri}"></script>
-            <script src="${showdownUri}"></script>
-            <style>
-            code {
-                font-family : monospace;
-                white-space: pre;
-            }
-            </style>
-        </head>
-        <body>
-            <script src="${chatScriptUri}"></script>
-        </body>
-        </html>`;
-    }
-
+    context.subscriptions.push(disposablefocusOmnibar);
+    context.subscriptions.push(morph_language_client);
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() { }
+export function deactivate() {}

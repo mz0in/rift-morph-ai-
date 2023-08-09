@@ -256,7 +256,5 @@ Answer the user's question."""
 
         t = asyncio.create_task(worker())
         chatstream._feed_task = t
-
-        logger.info("Created chat stream, awaiting results.")
-
+        # logger.info("Created chat stream, awaiting results.")
         return ChatResult(text=chatstream)

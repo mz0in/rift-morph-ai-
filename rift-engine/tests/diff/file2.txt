@@ -1,0 +1,12 @@
+# Some comment
+
+@dataclass
+class TextEdit:
+    range: Range
+    newText: str
+    annotationId: Optional[ChangeAnnotationIdentifier] = field(default=None)
+
+
+@dataclass
+class Create2Files:
+    ignoreIfExists: Optional[bool] = field(default=None)

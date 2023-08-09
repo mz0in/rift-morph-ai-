@@ -2,12 +2,12 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [project]
 name = "pyrift"
+version = "2.0.0"
 description = ''
 readme = "README.md"
 requires-python = ">=3.9"
@@ -28,22 +28,27 @@ dependencies = [
   "transformers",
   "diff_match_patch",
   "art",
+  "smol_dev @ git+https://www.github.com/jesse-michael-han/smol_dev",
+  "gpt-engineer @ git+https://www.github.com/morph-labs/gpt-engineer",
+  "aider-chat @ git+https://github.com/morph-labs/aider"
 ]
-dynamic = ["version"]
 
 [project.optional-dependencies]
 # install these to use huggingface models
 hf = [
   "torch",
 ]
-smol-dev = [
+
+smol_dev = [
   "smol_dev @ git+https://www.github.com/jesse-michael-han/smol_dev",
 ]
+
 gpt-engineer = [
-   "gpt-engineer @ git+https://www.github.com/morph-labs/gpt-engineer",
+  "gpt-engineer @ git+https://www.github.com/morph-labs/gpt-engineer",
 ]
+
 aider = [
-  "aider-chat @ git+https://github.com/morph-labs/aider",
+  "aider-chat @ git+https://github.com/morph-labs/aider"
 ]
 
 [project.urls]
@@ -73,7 +78,7 @@ dev = "python -m rift.server.core --debug {args}"
 bundle = "pyinstaller rift/server/core.py --name rift -y --collect-all gpt4all --onefile --log-level=DEBUG {args}"
 
 [[tool.hatch.envs.test.matrix]]
-python = ["39", "310", "311"]
+python = ["310", "311"]
 
 [tool.coverage.run]
 branch = true

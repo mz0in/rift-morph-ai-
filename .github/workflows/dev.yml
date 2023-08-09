@@ -1,0 +1,118 @@
+name: format and compile
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+on:
+  pull_request:
+    branches: [ dev ]
+  push:
+    branches: [ dev ]
+    
+    # allow manual trigger of workflow 
+    workflow_dispatch:
+
+jobs:
+  # rift-engine:
+  #   # Check if the PR is not from a fork
+  #   if: github.event.pull_request.head.repo.full_name == github.repository
+  #   name:  Test & Build - Rift Engine 
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout Code
+  #       uses: actions/checkout@v2
+  #       with: 
+  #         ref: ${{ github.head_ref }}
+
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: '3.10' # adjust this
+
+  #     - name: Install dependencies
+  #       run: pip install -e .
+  #       working-directory: rift-engine
+      
+  #     - name: Ruff
+  #       uses: chartboost/ruff-action@v1
+  #       working-directory: rift-engine
+      
+  #     - name: Run isort
+  #       uses: isort/isort-action@v1
+  #       working-directory: rift-engine
+      
+  #     - name: Run black
+  #       uses: psf/black@stable
+  #       working-directory: rift-engine
+  #       with:
+  #         options: "--check --verbose --line-length 100"
+  #         src: "."
+  #         version: "~= 22.0"      
+
+  #     - name: check for modified files
+  #       id: git-check-black
+  #       run: echo "modified=$(if git diff-index --quiet HEAD --; then echo "false"; else echo "true"; fi)" >> $GITHUB_OUTPUT
+  #       working-directory: rift-engine
+      
+  #     - name: Run the program
+  #       run: python -m rift.server.core --port 7797
+  #       working-directory: rift-engine
+      
+  #     - name: commit black formatting
+  #       if: steps.git-check.outputs.modified == 'true'
+  #       run: |
+  #         git config --global user.name "kataqatsi"
+  #         git config --global user.email "kataqatsi@gmail.com"
+  #         git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+  #         git commit -am "chore: format code with Black"
+  #         git push
+  #       working-directory: rift-engine
+
+  vscode-extension:
+    # Check if the PR is not from a fork
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    name:  Test & Build - VSCode Extension
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+      
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with: 
+          node-version: 20
+      
+      - name: Install dependencies
+        run: npm ci
+        working-directory: editors/rift-vscode
+      
+      - name: eslint
+        run: npm run lint
+        working-directory: editors/rift-vscode
+      
+      - name: prettier
+        run: npm run format
+        working-directory: editors/rift-vscode
+      
+      - name: check for modified files
+        id: git-check
+        run: echo "modified=$(if git diff-index --quiet HEAD --; then echo "false"; else echo "true"; fi)" >> $GITHUB_OUTPUT
+        working-directory: editors/rift-vscode
+      
+      - name: compile
+        run: npm run compile
+        working-directory: editors/rift-vscode
+      
+      - name: commit prettier formatting
+        if: steps.git-check.outputs.modified == 'true'
+        run: |
+          git config --global user.name "kataqatsi"
+          git config --global user.email "kataqatsi@gmail.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git commit -am "chore: format code with Prettier"
+          git push
+        working-directory: editors/rift-vscode

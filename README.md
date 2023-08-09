@@ -1,45 +1,92 @@
 # Rift
+Rift is open-source infrastructure for AI-native development environments. Rift makes your IDE *agentic*. Software will soon be written mostly by AI software engineers that work alongside you. Codebases will soon be living, spatial artifacts that *maintain context*, *listen to*, *anticipate*, *react to*, and *execute* your every intent. The [Rift Code Engine](./rift-engine/) implements an AI-native extension of the [language server protocol](https://microsoft.github.io/language-server-protocol/). The [Rift VSCode extension](./editors/rift-vscode) implements an client and end-user interface which is the first step into that future.
 
-At [Morph](https://morph.so), we believe that:
-- Future software will be mostly written by AI, and augmented/supervised by humans.
-- Keeping personal data safe and computations secure will become increasingly important.
-- The future of software belongs to everyone.
+![rift screencast](assets/rift-screencast.gif) <!-- TODO: pranav -->
 
-That is why we are releasing Rift, an [open-source language server](./rift-engine) and [IDE extension](./editors/rift-vscode) that lets everyone deploy a personal AI software engineer — locally hosted, private, secure, open-source, and free.
+- [Discord](https://discord.gg/wa5sgWMfqv)
+- [Getting started](#getting-started)
+- [Installation](#manual-installation)
+- [Features](#features)
+- [Tips](#tips)
+- [The road ahead](#the-road-ahead)
 
-https://github.com/morph-labs/rift/assets/122334950/83c56f1c-1d9d-4d7f-b789-a131d09e8d1c
+## Features
+**Conversational code editing**
 
+<!-- TODO: pranav -->
+![code edit screencast](assets/code-edit-screencast.gif) <!-- TODO: pranav -->
+
+**Codebase-wide edits**
+
+<!-- TODO: pranav -->
+![aider screencast](assets/aider-screencast.gif) <!-- TODO: pranav -->
+
+**Contextual codebase generation**
+
+<!-- TODO: pranav -->
+![smol screencast](assets/smol-screencast.gif) <!-- TODO: pranav -->
+
+## Tips
+- Press Command+K to focus the Rift Omnibar.
+  - Once focused, you can either engage with the current chat or use a slash-command (e.g. `/aider`) to spawn a new agent.
+- Each instance of a Rift Chat or Code Edit agent will remain attached to the open file / selection you used to spawn it.
+  - To switch to a new file or request a code edit on a new selection, spawn a new agent by pressing Command+K and running a slash-command (e.g. `/edit`)
+  - Both Rift Chat and Code Edit see a window around your cursor or selection in the currently active editor window. To tell them about other resources in your codebase, mention them with `@`.
+  - Code Edit 
+- You can `@`-mention files and directories to tell your agents about other parts of the codebase.
+- Currently, Rift works best when the active workspace directory is the same as the root directory of the `git` project.
+
+
+## Getting started
+Install the VSCode extension from the VSCode Marketplace. By default, the extension will attempt to automatically start the Rift Code Engine every time the extension is activated. During this process, if a `rift` executable is not found in a virtual environment under `~/.morph`, the extension will ask you to attempt an automatic installation of a Python environment and the Rift Code Engine. To disable this behavior, such as for development, go to the VSCode settings, search for "rift", and set `rift.autostart` to `false`.
+
+If the automatic installation of the Rift Code Engine fails, follow the below instructions for manual installation.
+
+### Manual installation
+**Rift Code Engine**:
+- Set up a Python virtual environment for Python 3.10 or higher.
+  - On Mac OSX:
+    - Install [homebrew](https://brew.sh).
+    - `brew install python@3.10`
+    - `mkdir ~/.morph/ && cd ~/.morph/ && python3.10 -m venv env`
+    - `source ./env/bin/activate/`
+  - On Linux:
+    - On Ubuntu:
+      - `sudo apt install software-properties-common -y`
+      - `sudo add-apt-repository ppa:deadsnakes/ppa`
+      - `sudo apt install python3.10 && sudo apt install python3.10-venv`
+      - `mkdir ~/.morph/ && cd ~/.morph/ && python3.10 -m venv env`
+      - `source ./env/bin/activate/`
+    - On Arch:
+      - `yay -S python310`
+      - `mkdir ~/.morph/ && cd ~/.morph/ && python3.10 -m venv env`
+      - `source ./env/bin/activate/`
+- Install Rift. We recommend that you `pip install` Rift in a dedicated Python >=3.10 virtual environment from this repository.
+  - Make sure that `which pip` returns a path whose prefix matches the location of a virtual environment, such as the one installed above.
+  <!-- - Using `pip` and PyPI: -->
+  <!--   - `pip install --upgrade 'pyrift[all]'` -->
+  <!--     - `[all]` is required to pull in direct dependencies needed for third-party agents like Aider, Smol Dev, and GPT Engineer. -->
+  - using `pip` from GitHub:
+    - `pip install "git+https://github.com/morph-labs/rift.git@dc27f3b299b79e37b1bcd169efa2216aa07f65b0#egg=pyrift&subdirectory=rift-engine"`
+  - From source:
+    - `cd ~/.morph/ && git clone git@github.com:morph-labs/rift && cd ./rift/rift-engine/ && pip install -e .`
+      
+**Rift VSCode Extension** (via `code --install-extension`, change the executable as needed):
+- `cd ./editors/rift-vscode && npm i && bash reinstall.sh`
 
 ## The road ahead
+<!-- TODO(jesse): rephrase / polish in light of Rift 2.0 -->
 Existing code generation tooling is presently mostly code-agnostic, operating at the level of tokens in / tokens out of code LMs. The [language server protocol](https://microsoft.github.io/language-server-protocol/) (LSP) defines a standard for *language servers*, objects which index a codebase and provide structure- and runtime-aware interfaces to external development tools like IDEs.
 
 The Rift Code Engine is an AI-native language server which will expose interfaces for code transformations and code understanding in a uniform, model- and language-agnostic way --- e.g. `rift.summarize_callsites` or `rift.launch_ai_swe_async` should work on a Python codebase with [StarCoder](https://huggingface.co/blog/starcoder) as well as it works on a Rust codebase using [CodeGen](https://github.com/salesforce/CodeGen). Within the language server, models will have full programatic access to language-specific tooling like compilers, unit and integration test frameworks, and static analyzers to produce correct code with minimal user intervention. We will develop UX idioms as needed to support this functionality in the Rift IDE extensions.
 
-## Getting started
-### VSCode extension
-Install the VSCode extension from the VSCode Marketplace or by building and installing from the VSIX bundle produced by the following steps:
-
-- `cd ./editors/rift-vscode`
-- Increment the semver number (e.g. 0.0.8 to 0.0.9) in the `package.json`
-- run `vsce package`
-
-If you also want to develop the extension itself, you should open the extension in an extension development host using the following steps:
-- `cd ./editors/rift-vscode`
-- Run `code .` to open a VSCode process on the `rift-vscode` workspace.
-- Press `Ctrl + F5` to compile the extension and create a new VSCode window with the extension loaded.
-
-### Rift Code Engine
-Run the Rift server by following the instructions in the [readme](./rift-engine/README.md).
-
-### Rift Agents API
-Add support for third-party coding agents written in Python and use access to the Rift Code Engine to propagate edits and gather input directly from the user in the IDE. See the [README here](./rift-engine/rift/agents/README.md) for the Rift Agents API.
-
-https://github.com/morph-labs/rift/assets/122334950/a5fee985-5bba-4cad-84d6-c019e2eff887
-
-### Running local models
-From the Rift VSCode extension, press `Ctrl + ,` to open the settings tab, then search for `Rift` and select the models you want to use for chat and code completions from the dropdown menu.
-
 ## Contributing
-We welcome contributions to Rift at all levels of the stack, from adding support for new open-source models in the Rift Code Engine, to implementing the Rift API for your favorite programming language, to UX polish in the VSCode extension, to adding support for your [favorite](./editors/emacs) [editor](./editors/vim).
+We welcome contributions to Rift at all levels of the stack, for example:
+- adding support for new open-source models in the Rift Code Engine
+- implementing the Rift API for your favorite programming language
+- UX polish in the VSCode extension
+- adding support for your favorite editor.
+
+See our [contribution guide](/CONTRIBUTORS.md) for details and guidelines.
 
 Programming is evolving. Join the [community](https://discord.gg/wa5sgWMfqv), contribute to our roadmap, and help shape the future of software.

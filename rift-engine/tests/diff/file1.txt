@@ -1,0 +1,11 @@
+@dataclass
+class TextEdit:
+    range: Range
+    newText: str
+    annotationId: Optional[ChangeAnnotationIdentifier] = field(default=None)
+
+
+@dataclass
+class CreateFileOptions:
+    overwrite: Optional[bool] = field(default=None)
+    ignoreIfExists: Optional[bool] = field(default=None)
