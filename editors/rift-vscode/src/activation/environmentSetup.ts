@@ -25,11 +25,11 @@ const PIP_INSTALL_ARGS = `install "git+https://github.com/morph-labs/rift.git@${
 const morphDir = path.join(os.homedir(), ".morph");
 
 export function getExtensionUri(): vscode.Uri {
-    return vscode.extensions.getExtension("morph.rift")!.extensionUri;
+    return vscode.extensions.getExtension("morph.rift-vscode")!.extensionUri;
 }
 
 function getExtensionVersion() {
-  const extension = vscode.extensions.getExtension("morph.rift");
+  const extension = vscode.extensions.getExtension("morph.rift-vscode");
   return extension?.packageJSON.version || "";
 }
 
