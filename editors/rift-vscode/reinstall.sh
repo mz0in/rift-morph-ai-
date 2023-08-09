@@ -6,7 +6,7 @@ find . -name "*.vsix" -type f -delete
 # Step 2: Run the following commands
 
 echo "Uninstalling extension..."
-code --uninstall-extension morph.rift
+code --uninstall-extension morph.rift-vscode
 
 echo "Running 'npm run clean'..."
 npm run clean

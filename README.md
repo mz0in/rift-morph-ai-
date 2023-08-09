@@ -1,4 +1,7 @@
 # Rift
+
+### [Download for VSCode](https://marketplace.visualstudio.com/items?itemName=Morph.rift-vscode)
+
 Rift is open-source infrastructure for AI-native development environments. Rift makes your IDE *agentic*. Software will soon be written mostly by AI software engineers that work alongside you. Codebases will soon be living, spatial artifacts that *maintain context*, *listen to*, *anticipate*, *react to*, and *execute* your every intent. The [Rift Code Engine](./rift-engine/) implements an AI-native extension of the [language server protocol](https://microsoft.github.io/language-server-protocol/). The [Rift VSCode extension](./editors/rift-vscode) implements an client and end-user interface which is the first step into that future.
 
 https://github.com/morph-labs/rift/assets/13114790/726f35ed-4959-4f69-9a80-fd903b26f909
@@ -32,6 +35,7 @@ https://github.com/morph-labs/rift/assets/13114790/726f35ed-4959-4f69-9a80-fd903
   - Code Edit 
 - You can `@`-mention files and directories to tell your agents about other parts of the codebase.
 - Currently, Rift works best when the active workspace directory is the same as the root directory of the `git` project.
+- Command+Shift+P -> "Rift: Start Server" restarts the server if it has been auto-installed.
 
 
 ## Getting started

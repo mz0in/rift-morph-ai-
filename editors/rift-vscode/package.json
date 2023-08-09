@@ -1,16 +1,13 @@
 {
-  "name": "rift",
+  "name": "rift-vscode",
   "repository": "https://www.github.com/morph-labs/rift",
   "publisher": "morph",
   "displayName": "rift",
   "description": "",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "engines": {
     "vscode": "^1.71.0"
   },
-  "enabledApiProposals": [
-    "extensionRuntime"
-  ],
   "categories": [
     "Other"
   ],
