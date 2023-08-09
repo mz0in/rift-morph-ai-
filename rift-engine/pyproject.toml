@@ -52,7 +52,7 @@ Issues = "https://github.com/morph-labs/rift/issues"
 Source = "https://github.com/morph-labs/rift"
 
 [project.scripts]
-rift = "rift.server.core:app"
+rift = "rift.server.core:main"
 
 [tool.hatch.version]
 path = "rift/__about__.py"
